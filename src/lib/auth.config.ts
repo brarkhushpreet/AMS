@@ -1,41 +1,39 @@
+import type { NextAuthConfig } from "next-auth";
+import Credentials from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
+import { db } from "@/lib/db";
+import { loginSchema } from "@/lib/validation";
 
-import type { NextAuthConfig } from "next-auth"
-import bcrypt from "bcryptjs"
-import credentials from "next-auth/providers/credentials"
-import { db } from "./db";
-import { LoginSchema } from "./Schema";
 export default {
-   providers: [
-    credentials({
-      async authorize(credentials){
-      
-        const validatedFields=LoginSchema.safeParse(credentials);
-        if(validatedFields.success){
-          const {email,password}=validatedFields.data;
+  providers: [
+    Credentials({
+      name: "Email and password",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        const parsed = loginSchema.safeParse(credentials);
+        if (!parsed.success) return null;
 
-          const user=await db.user.findUnique({
-            where:{
-              email:email
-            }
-          })
-          
+        const user = await db.user.findUnique({
+          where: { email: parsed.data.email.trim().toLowerCase() },
+        });
 
-          if(!user || !user.password) return null;
-
-          const passwordMatch= await bcrypt.compare(
-            password,
-            user.password
-          );
-
-          if(passwordMatch){
-            return user;
-          }
-          
+        if (!user || !(await bcrypt.compare(parsed.data.password, user.password))) {
+          return null;
         }
-        return null;
 
-      }
-    })
-   ]
-  
-  } satisfies NextAuthConfig
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+        };
+      },
+    }),
+  ],
+  pages: {
+    signIn: "/auth/login",
+  },
+} satisfies NextAuthConfig;

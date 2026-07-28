@@ -1,22 +1,24 @@
-import NextAuth from "next-auth"
-import authConfig from "./auth.config";
+import NextAuth from "next-auth";
+import type { Role } from "@/generated/prisma/client";
+import authConfig from "@/lib/auth.config";
 
- 
 export const { auth, handlers, signIn, signOut } = NextAuth({
-  //extend the session after the updating prisma.schema 
-  callbacks:{
-    async session({token,session}){
-      if(token.sub && session.user){
-        session.user.id=token.sub;
+  ...authConfig,
+  secret: process.env.AUTH_SECRET,
+  session: { strategy: "jwt" },
+  callbacks: {
+    jwt({ token, user }) {
+      if (user) {
+        token.role = user.role as Role;
       }
-      
+      return token;
+    },
+    session({ session, token }) {
+      if (session.user && token.sub) {
+        session.user.id = token.sub;
+        session.user.role = token.role as Role | undefined;
+      }
       return session;
     },
-    async jwt({token}){
-      
-      return token;
-    }
   },
-  session:{strategy:"jwt"},
-   ...authConfig
 });

@@ -1,32 +1,9 @@
-export const dynamic = 'force-dynamic'
-
-import { currentProfile } from "@/lib/currentProfile";
-import { Role } from "@prisma/client";
 import { redirect } from "next/navigation";
+import { requireProfile } from "@/lib/current-profile";
 
-
-const Dashboard = async () => {
-  
-    const user = await currentProfile();
-
-    if (!user) {
-      redirect("auth/login");
-    }
-
-    switch (user.role) {
-      case Role.TEACHER:
-        redirect("/dashboard/teacher");
-      case Role.STUDENT:
-        redirect("/dashboard/student");
-      case Role.ADMIN:
-        redirect("/admin_dashboard");
-      default:
-        redirect("/error");
-    }
-
-   
-  
-  
-};
-
-export default Dashboard;
+export default async function DashboardPage() {
+  const profile = await requireProfile();
+  redirect(
+    profile.role === "TEACHER" ? "/dashboard/teacher" : "/dashboard/student",
+  );
+}

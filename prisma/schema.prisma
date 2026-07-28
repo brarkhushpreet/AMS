@@ -1,10 +1,10 @@
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -12,112 +12,154 @@ model User {
   email     String   @unique
   password  String
   role      Role     @default(STUDENT)
-  username  String
+  name      String
   student   Student?
   teacher   Teacher?
-  admin     Admin?
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Student {
-  id        String             @id @default(uuid())
-  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String             @unique
-  branch    String
-  registrationNumber String    @unique
-  courses   Course[]           @relation("StudentCourses")
-  attendanceRecords AttendanceRecord[]
-  enrollments Enrollment[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt @default(now())
+  id                 String             @id @default(uuid())
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId             String             @unique
+  department         String?
+  className          String?
+  batch              String?
+  registrationNumber String             @unique
+  enrollments        Enrollment[]
+  attendanceRecords  AttendanceRecord[]
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
 }
 
 model Teacher {
-  id        String             @id @default(uuid())
-  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String             @unique
-  department String
-  courses   Course[]           @relation("TeacherCourses")
-  attendanceRecords AttendanceRecord[]
-  enrollments Enrollment[]
-  qrCodes   QRCode[]           @relation("TeacherQRCodes")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt @default(now())
+  id         String      @id @default(uuid())
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String      @unique
+  department String?
+  classrooms Classroom[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
 }
 
-model Admin {
-  id        String   @id @default(uuid())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt @default(now())
-}
+model Classroom {
+  id                 String              @id @default(uuid())
+  name               String
+  subjectCode        String
+  joinCode           String              @unique
+  section            String?
+  academicTerm       String
+  teacher            Teacher             @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  teacherId          String
+  enrollments        Enrollment[]
+  invitations        ClassroomInvitation[]
+  attendanceSessions AttendanceSession[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
 
-model Course {
-  id              String             @id @default(uuid())
-  name            String
-  code            String             @unique
-  session         String
-  department      String
-  teachers        Teacher[]          @relation("TeacherCourses")
-  students        Student[]          @relation("StudentCourses")
-  attendanceRecords AttendanceRecord[]
-  enrollments Enrollment[]
-  qrCodes   QRCode[]           @relation("CourseQRCodes")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt @default(now())
-}
-
-model AttendanceRecord {
-  id        String            @id @default(uuid())
-  student   Student           @relation(fields: [studentId], references: [id])
-  studentId String
-  course    Course            @relation(fields: [courseId], references: [id])
-  courseId  String
-  date      DateTime          @default(now())
-  status    AttendanceStatus  @default(PRESENT)
-  session   String
-  teacher   Teacher           @relation(fields: [teacherId], references: [id])
-  teacherId String
-  qrCode    QRCode            @relation(fields: [qrCodeId], references: [id])
-  qrCodeId  String            
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt @default(now())
-}
-
-model QRCode {
-  id        String   @id @default(uuid())
-  code      String   @unique
-  attendanceRecords AttendanceRecord[]
-  teacherId String
-  courseId  String
-  teacher   Teacher  @relation("TeacherQRCodes", fields: [teacherId], references: [id])
-  course    Course   @relation("CourseQRCodes", fields: [courseId], references: [id])
-  expiresAt DateTime // Add this line
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt @default(now())
+  @@unique([teacherId, subjectCode, academicTerm])
+  @@index([teacherId])
 }
 
 model Enrollment {
-  id        String   @id @default(uuid())
-  student   Student  @relation(fields: [studentId], references: [id])
-  studentId String
-  course    Course   @relation(fields: [courseId], references: [id])
-  courseId  String
-  teacher   Teacher  @relation(fields: [teacherId], references: [id])
-  teacherId String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt @default(now())
+  id          String    @id @default(uuid())
+  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId   String
+  classroom   Classroom @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+  classroomId String
+  joinedAt    DateTime  @default(now())
+
+  @@unique([studentId, classroomId])
+  @@index([classroomId])
+}
+
+model ClassroomInvitation {
+  id                 String           @id @default(uuid())
+  classroom          Classroom        @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+  classroomId        String
+  email              String
+  name               String
+  registrationNumber String?
+  department         String?
+  className          String?
+  batch              String?
+  token              String           @unique @default(uuid())
+  status             InvitationStatus @default(PENDING)
+  expiresAt          DateTime
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@unique([classroomId, email])
+  @@index([email, status])
+}
+
+model AttendanceSession {
+  id                  String                  @id @default(uuid())
+  classroom           Classroom               @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+  classroomId         String
+  method              AttendanceMethod
+  status              AttendanceSessionStatus @default(ACTIVE)
+  startedAt           DateTime                @default(now())
+  endsAt              DateTime
+  latitude            Float?
+  longitude           Float?
+  radiusMeters        Int?
+  frequencyMinHz      Int?
+  frequencyMaxHz      Int?
+  frequencyIntervalMs Int?
+  minFrequencyMatches Int?
+  attendanceRecords   AttendanceRecord[]
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+
+  @@index([classroomId, status])
+  @@index([endsAt])
+}
+
+model AttendanceRecord {
+  id             String           @id @default(uuid())
+  session        AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId      String
+  student        Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId      String
+  status         AttendanceStatus  @default(PRESENT)
+  method         AttendanceMethod
+  confidence     Float?
+  distanceMeters Float?
+  evidence       Json?
+  verifiedAt     DateTime          @default(now())
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@unique([sessionId, studentId])
+  @@index([studentId, verifiedAt])
 }
 
 enum Role {
   STUDENT
   TEACHER
-  ADMIN
+}
+
+enum AttendanceMethod {
+  GEOLOCATION
+  ULTRASOUND
+}
+
+enum AttendanceSessionStatus {
+  ACTIVE
+  CLOSED
+  CANCELLED
 }
 
 enum AttendanceStatus {
   PRESENT
   ABSENT
+  LATE
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
 }
