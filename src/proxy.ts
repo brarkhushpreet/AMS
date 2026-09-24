@@ -12,7 +12,7 @@ import {
 const { auth } = NextAuth(authConfig);
 
 export default auth((request) => {
-  const path = request.nextUrl.pathname;
+  const path = request.nextUrl.pathname; 
   const isLoggedIn = Boolean(request.auth);
   const isAuthApi = path === apiAuthPrefix || path.startsWith(`${apiAuthPrefix}/`);
   const isPublic =
