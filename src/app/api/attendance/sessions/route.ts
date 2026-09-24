@@ -3,6 +3,11 @@ import { db } from "@/lib/db";
 import { requireProfile } from "@/lib/current-profile";
 import { attendanceSessionSchema } from "@/lib/validation";
 import { invalidateCache } from "@/lib/redis";
+import {
+  appendAttendanceEventTx,
+  auditActorId,
+  generateAttendanceReport,
+} from "@/lib/audit";
 
 export async function POST(request: Request) {
   const profile = await requireProfile();
@@ -41,12 +46,26 @@ export async function POST(request: Request) {
   const now = new Date();
   const endsAt = new Date(now.getTime() + values.durationMinutes * 60_000);
 
-  const session = await db.$transaction(async (tx) => {
+  const result = await db.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT "id" FROM "Classroom" WHERE "id" = ${values.classroomId} FOR UPDATE`;
+    const superseded = await tx.attendanceSession.findMany({
+      where: { classroomId: values.classroomId, status: "ACTIVE" },
+      select: { id: true },
+    });
     await tx.attendanceSession.updateMany({
       where: { classroomId: values.classroomId, status: "ACTIVE" },
       data: { status: "CLOSED", endsAt: now },
     });
-    return tx.attendanceSession.create({
+    for (const previous of superseded) {
+      await appendAttendanceEventTx(tx, {
+        sessionId: previous.id,
+        type: "SESSION_CLOSED",
+        actorId: auditActorId(profile.id),
+        payload: { reason: "SUPERSEDED_BY_NEW_SESSION" },
+        createdAt: now,
+      });
+    }
+    const created = await tx.attendanceSession.create({
       data: {
         classroomId: values.classroomId,
         method: values.method,
@@ -60,11 +79,44 @@ export async function POST(request: Request) {
         minFrequencyMatches: values.method === "ULTRASOUND" ? 4 : null,
       },
     });
+    await appendAttendanceEventTx(tx, {
+      sessionId: created.id,
+      type: "SESSION_STARTED",
+      actorId: auditActorId(profile.id),
+      payload: {
+        classroomId: values.classroomId,
+        method: values.method,
+        durationMinutes: values.durationMinutes,
+        protocolVersion: 2,
+        acousticPolicy:
+          values.method === "ULTRASOUND"
+            ? {
+                expectedFrequencyDisclosure: false,
+                frequencyMinHz: 17_200,
+                frequencyMaxHz: 18_800,
+                frequencyIntervalMs: 1_100,
+                minFrequencyMatches: 4,
+              }
+            : null,
+      },
+    });
+    return {
+      session: created,
+      supersededIds: superseded.map((item) => item.id),
+    };
   });
+  await Promise.allSettled(
+    result.supersededIds.map((sessionId) =>
+      generateAttendanceReport(sessionId),
+    ),
+  );
 
   await invalidateCache(
     `dashboard:teacher:${profile.teacher.id}`,
     "dashboard:student:*",
   );
-  return NextResponse.json({ session }, { status: 201 });
+  return NextResponse.json(
+    { session: result.session },
+    { status: 201 },
+  );
 }

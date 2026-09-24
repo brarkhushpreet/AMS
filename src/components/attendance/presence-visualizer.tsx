@@ -1,17 +1,10 @@
 "use client";
 
-import { motion } from "motion/react";
-import { AudioLines, LocateFixed, MapPin, RadioTower } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
+import { LocateFixed, Waves } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function PresenceVisualizer({
-  method,
-  active = false,
-  frequency,
-  progress,
-  required,
-  compact = false,
-}: {
+export function PresenceVisualizer({ method, active = false, frequency, progress, required, compact = false }: {
   method: "GEOLOCATION" | "ULTRASOUND";
   active?: boolean;
   frequency?: number | null;
@@ -19,128 +12,56 @@ export function PresenceVisualizer({
   required?: number;
   compact?: boolean;
 }) {
-  if (method === "GEOLOCATION") {
-    return (
-      <div
-        className={cn(
-          "presence-stage relative isolate overflow-hidden rounded-[1.75rem]",
-          compact ? "h-48" : "h-72",
-        )}
-      >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_55%,rgba(34,211,238,.18),transparent_38%),linear-gradient(145deg,#11191d,#172128)]" />
-        <div className="radar-grid absolute inset-0 opacity-40" />
-        <div className="absolute left-1/2 top-[55%] size-52 -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-200/12">
-          <div className="absolute inset-[18%] rounded-full border border-cyan-200/14" />
-          <div className="absolute inset-[37%] rounded-full border border-cyan-200/16" />
-          <motion.div
-            animate={active ? { rotate: 360 } : { rotate: 35 }}
-            transition={
-              active
-                ? { duration: 3.4, repeat: Number.POSITIVE_INFINITY, ease: "linear" }
-                : { duration: 0.8 }
-            }
-            className="absolute inset-0 rounded-full bg-[conic-gradient(from_0deg,transparent_0deg,transparent_295deg,rgba(103,232,249,.26)_345deg,rgba(103,232,249,.04)_360deg)]"
-          />
-          <span className="absolute left-1/2 top-1/2 grid size-11 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-cyan-200/25 bg-cyan-300 text-slate-950 shadow-[0_0_40px_8px_rgba(34,211,238,.25)]">
-            <LocateFixed className="size-4.5" />
-          </span>
-          {[
-            ["left-[12%] top-[29%]", 0],
-            ["right-[8%] top-[48%]", 0.8],
-            ["bottom-[8%] left-[32%]", 1.5],
-          ].map(([position, delay]) => (
-            <motion.span
-              key={position as string}
-              animate={active ? { scale: [0.7, 1.25, 0.7], opacity: [0.45, 1, 0.45] } : undefined}
-              transition={{ duration: 2.4, delay: delay as number, repeat: Number.POSITIVE_INFINITY }}
-              className={cn(
-                "absolute size-2.5 rounded-full border border-white/50 bg-cyan-300 shadow-[0_0_16px_3px_rgba(103,232,249,.35)]",
-                position,
-              )}
-            />
-          ))}
-        </div>
-        <div className="absolute inset-x-4 bottom-4 flex items-center justify-between rounded-xl border border-white/10 bg-black/25 px-3 py-2.5 text-white backdrop-blur-md">
-          <span className="flex items-center gap-2 text-[0.68rem] font-bold text-white/65">
-            <MapPin className="size-3.5 text-cyan-300" />
-            Precision room field
-          </span>
-          <span className="font-mono text-[0.65rem] text-cyan-200">
-            {active ? "SCANNING" : "READY"}
-          </span>
-        </div>
-      </div>
-    );
-  }
-
-  const bars = [18, 35, 58, 30, 75, 46, 88, 52, 70, 28, 64, 40, 80, 34, 56, 22];
+  const reduced = useReducedMotion();
+  const animate = active && !reduced;
+  const location = method === "GEOLOCATION";
+  const bars = [12, 20, 34, 24, 48, 36, 62, 46, 72, 54, 40, 60, 34, 48, 26, 36, 18, 10];
   return (
-    <div
-      className={cn(
-        "presence-stage relative isolate overflow-hidden rounded-[1.75rem]",
-        compact ? "h-48" : "h-72",
-      )}
-    >
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_52%,rgba(167,139,250,.22),transparent_36%),linear-gradient(145deg,#15151c,#20192d)]" />
-      <div className="signal-grid absolute inset-0 opacity-35" />
-      <div className="absolute inset-x-6 top-7 flex items-center justify-between text-white">
-        <span className="flex items-center gap-2 text-[0.66rem] font-bold tracking-[0.14em] text-white/45 uppercase">
-          <RadioTower className="size-3.5 text-violet-300" />
-          rotating challenge
+    <div className={cn("presence-canvas relative isolate overflow-hidden rounded-xl border border-[var(--presence-line)]", compact ? "h-48" : "h-60")}>
+      <div aria-hidden="true" className="presence-canvas-grid pointer-events-none absolute inset-x-0 top-12 bottom-10 -z-10" />
+      <div className="absolute inset-x-4 top-3 flex items-center justify-between gap-2">
+        <span className="flex items-center gap-2 text-xs font-medium text-[var(--foreground)]">
+          <span className="grid size-6 place-items-center rounded-md border border-[var(--presence-line)] bg-[var(--presence-base)] text-[var(--accent)]">
+            {location ? <LocateFixed className="size-3.5" /> : <Waves className="size-3.5" />}
+          </span>
+          {location ? "Classroom radius" : "Room signal"}
         </span>
-        <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 font-mono text-[0.6rem] text-violet-200">
-          {active ? "LIVE" : "STANDBY"}
+        <span className="flex items-center gap-1.5 rounded-full border border-[var(--presence-line)] bg-[var(--presence-base)] px-2 py-1 text-[10px] font-medium text-[var(--muted)]">
+          {active && <span className="size-1.5 rounded-full bg-[var(--accent)]" />}
+          {active ? "Active session" : "Preview"}
         </span>
       </div>
 
-      <div className="absolute inset-x-6 top-1/2 flex -translate-y-1/2 items-center justify-center gap-1.5">
-        {bars.map((height, index) => (
-          <motion.span
-            key={`${height}-${index}`}
-            animate={
-              active
-                ? {
-                    height: [
-                      `${Math.max(12, height * 0.45)}px`,
-                      `${height}px`,
-                      `${Math.max(16, height * 0.62)}px`,
-                    ],
-                    opacity: [0.45, 1, 0.6],
-                  }
-                : { height: `${Math.max(10, height * 0.32)}px`, opacity: 0.35 }
-            }
-            transition={{
-              duration: 0.72 + (index % 4) * 0.14,
-              repeat: active ? Number.POSITIVE_INFINITY : 0,
-              repeatType: "mirror",
-              ease: "easeInOut",
-            }}
-            className="w-1.5 rounded-full bg-linear-to-t from-violet-500 via-fuchsia-300 to-cyan-200 shadow-[0_0_12px_rgba(196,181,253,.35)] sm:w-2"
-          />
-        ))}
+      <div aria-hidden="true" className="absolute inset-x-4 top-11 bottom-11 flex items-center justify-center">
+        {location ? (
+          <div className="relative grid h-full w-full max-w-72 place-items-center">
+            <svg viewBox="0 0 288 150" className="absolute h-full w-full text-[var(--presence-line)]" fill="none">
+              <path d="M0 32H78V0M210 0V35H288M0 117H74V150M215 150V114H288M32 0V150M257 0V150" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M0 75H288M144 0V150" stroke="currentColor" strokeDasharray="3 6" />
+            </svg>
+            <div className={cn("relative grid place-items-center rounded-full border border-dashed border-[var(--accent)]/45 bg-[var(--accent)]/[0.035]", compact ? "size-24" : "size-32")}>
+              <div className="absolute inset-4 rounded-full border border-[var(--accent)]/20" />
+              <motion.div animate={animate ? { scale: [.65, 1.12], opacity: [.4, 0] } : { scale: 1, opacity: .15 }} transition={animate ? { duration: 3, repeat: Infinity } : { duration: 0 }} className="absolute inset-0 rounded-full border border-[var(--accent)]" />
+              <span className="relative grid size-10 place-items-center rounded-xl border border-[var(--presence-line)] bg-[var(--presence-base)] text-[var(--accent)] shadow-sm"><LocateFixed className="size-5" /></span>
+              <span className="absolute -right-1 top-1/2 size-2 rounded-full border-2 border-[var(--presence-base)] bg-[var(--accent)]" />
+            </div>
+          </div>
+        ) : (
+          <div className="relative flex h-full w-full max-w-80 items-center justify-center">
+            <div className="absolute inset-x-0 top-1/2 h-px bg-[var(--presence-line)]" />
+            <div className="relative flex items-center gap-1.5">
+              {bars.map((height, index) => (
+                <motion.span key={index} className={cn("w-1.5 rounded-full", index > 4 && index < 13 ? "bg-[var(--accent)]" : "bg-[var(--accent)]/45")} style={{ height: height * (compact ? .7 : 1) }} animate={animate ? { scaleY: [.65, 1, .65] } : { scaleY: .85 }} transition={animate ? { duration: 1.8, delay: index * .07, repeat: Infinity } : { duration: 0 }} />
+              ))}
+            </div>
+            <span className="absolute bottom-0 text-[9px] font-medium tracking-[.15em] text-[var(--muted)] uppercase">Frequency sequence</span>
+          </div>
+        )}
       </div>
 
-      <motion.div
-        animate={active ? { x: ["-20%", "120%"] } : { x: "50%" }}
-        transition={{ duration: 1.1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-        className="absolute inset-y-0 w-px bg-linear-to-b from-transparent via-white/65 to-transparent shadow-[0_0_18px_4px_rgba(255,255,255,.2)]"
-      />
-
-      <div className="absolute inset-x-4 bottom-4 flex items-center justify-between rounded-xl border border-white/10 bg-black/25 px-3 py-2.5 text-white backdrop-blur-md">
-        <span className="flex items-center gap-2 text-[0.68rem] font-bold text-white/65">
-          <AudioLines className="size-3.5 text-violet-300" />
-          {progress !== undefined && required
-            ? `${progress} of ${required} tones matched`
-            : "Frequency-hopping proof"}
-        </span>
-        <motion.span
-          key={frequency ?? "idle"}
-          initial={{ opacity: 0, y: 4 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="font-mono text-[0.7rem] font-bold text-violet-200"
-        >
-          {frequency ? `${(frequency / 1_000).toFixed(2)} kHz` : "17.20—18.80 kHz"}
-        </motion.span>
+      <div className="absolute inset-x-0 bottom-0 flex min-h-10 items-center justify-between gap-3 border-t border-[var(--presence-line)] bg-[var(--presence-base)] px-4 py-2 text-[11px] text-[var(--muted)]">
+        <span>{location ? "Position checked against the room center" : frequency ? (frequency / 1000).toFixed(1) + " kHz · current tone" : active ? "Short-lived tones verify classroom presence" : "A changing sequence, not a reusable tone"}</span>
+        {required ? <span className="shrink-0 rounded-md bg-[var(--accent-soft)] px-2 py-0.5 font-mono tabular-nums text-[var(--accent)]">{progress ?? 0} / {required}</span> : null}
       </div>
     </div>
   );

@@ -45,7 +45,7 @@ export default async function StudentSessionPage({
     <div className="mx-auto max-w-xl py-2 sm:py-8">
       <Link
         href={`/dashboard/student/classes/${session.classroomId}`}
-        className="mb-5 inline-flex items-center gap-2 text-xs font-extrabold text-slate-500 hover:text-slate-950"
+        className="mb-5 inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-950"
       >
         <ArrowLeft className="size-3.5" />
         Back to classroom
@@ -55,12 +55,12 @@ export default async function StudentSessionPage({
           <span className="mx-auto grid size-16 place-items-center rounded-full bg-emerald-100 text-emerald-600">
             <CheckCircle2 className="size-7" />
           </span>
-          <h2 className="mt-5 text-2xl font-black text-slate-950">Already checked in</h2>
+          <h2 className="mt-5 text-2xl font-semibold text-slate-950">Already checked in</h2>
           <p className="mt-2 text-sm text-slate-500">Your attendance for this session is safely recorded.</p>
         </div>
       ) : unavailable ? (
         <div className="rounded-3xl border border-amber-200 bg-white p-9 text-center shadow-soft">
-          <h2 className="text-2xl font-black text-slate-950">This check-in has ended</h2>
+          <h2 className="text-2xl font-semibold text-slate-950">This check-in has ended</h2>
           <p className="mt-2 text-sm text-slate-500">Ask your teacher if you believe this is a mistake.</p>
         </div>
       ) : (

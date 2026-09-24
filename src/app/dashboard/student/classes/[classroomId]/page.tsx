@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ClassroomBanner } from "@/components/classrooms/classroom-banner";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -6,6 +7,7 @@ import {
   BarChart3,
   CalendarCheck2,
   RadioTower,
+  ShieldCheck,
   UserRound,
 } from "lucide-react";
 import { db } from "@/lib/db";
@@ -112,16 +114,16 @@ export default async function StudentClassroomPage({
 
   return (
     <div className="space-y-7">
-      <Link href="/dashboard/student/classes" className="inline-flex items-center gap-2 text-xs font-extrabold text-slate-500 hover:text-slate-950">
+      <Link href="/dashboard/student/classes" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-950">
         <ArrowLeft className="size-3.5" />
         My classrooms
       </Link>
-      <section className="overflow-hidden rounded-3xl bg-linear-to-br from-blue-600 to-violet-600 px-6 py-7 text-white shadow-soft sm:px-8">
+      <ClassroomBanner>
         <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
           <div>
             <StatusPill tone="blue">{classroom.subjectCode}</StatusPill>
-            <h2 className="mt-4 text-3xl font-black tracking-[-0.04em]">{classroom.name}</h2>
-            <p className="mt-2 text-sm font-semibold text-blue-100">
+            <h2 className="mt-4 text-3xl font-semibold tracking-[-0.04em]">{classroom.name}</h2>
+            <p className="mt-2 text-sm text-[var(--muted)]">
               {classroom.teacher.user.name} · {classroom.academicTerm}
             </p>
           </div>
@@ -134,12 +136,12 @@ export default async function StudentClassroomPage({
               Check in now
             </Link>
           ) : (
-            <div className="rounded-2xl bg-white/10 px-4 py-3 text-sm font-extrabold text-blue-100">
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--muted)]">
               No live check-in
             </div>
           )}
         </div>
-      </section>
+      </ClassroomBanner>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Attendance" value={`${rate}%`} detail={rate >= 75 ? "You are on track" : "Below the recommended 75%"} icon={BarChart3} tone={rate >= 75 ? "emerald" : "amber"} />
@@ -161,15 +163,15 @@ export default async function StudentClassroomPage({
         resultCount={filteredSessions.length}
       />
 
-      <section className="overflow-hidden rounded-2xl border border-black/8 bg-[#fbfaf5] shadow-card dark:border-white/8 dark:bg-[#151b18]">
+      <section className="overflow-hidden rounded-2xl border border-black/8 bg-[var(--surface)] shadow-card dark:border-white/8 dark:bg-[var(--surface)]">
         <div className="border-b border-black/6 px-5 py-4 dark:border-white/7">
-          <h3 className="font-black text-slate-950 dark:text-white">Session history</h3>
-          <p className="mt-1 text-xs font-semibold text-slate-400 dark:text-white/35">
+          <h3 className="font-semibold text-slate-950 dark:text-white">Session history</h3>
+          <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-white/60">
             Every attendance session for this classroom
           </p>
         </div>
         {filteredSessions.length === 0 ? (
-          <p className="p-10 text-center text-sm font-semibold text-slate-400">No sessions have been held yet.</p>
+          <p className="p-10 text-center text-sm font-semibold text-slate-500">No sessions have been held yet.</p>
         ) : (
           <div className="divide-y divide-black/6 dark:divide-white/7">
             {pageSessions.map((session) => {
@@ -182,13 +184,22 @@ export default async function StudentClassroomPage({
                     <RadioTower className="size-4" />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-extrabold text-slate-800 dark:text-white/85">{formatDate(session.startedAt)}</p>
-                    <p className="mt-0.5 text-[0.68rem] font-semibold text-slate-400 dark:text-white/32">{formatMethod(session.method)}</p>
+                    <p className="text-sm font-semibold text-slate-800 dark:text-white/85">{formatDate(session.startedAt)}</p>
+                    <p className="mt-0.5 text-[0.68rem] font-semibold text-slate-500 dark:text-white/60">{formatMethod(session.method)}</p>
                   </div>
                   {live && !present ? (
-                    <Link href={`/dashboard/student/sessions/${session.id}`} className="text-xs font-extrabold text-brand-600">Check in</Link>
+                    <Link href={`/dashboard/student/sessions/${session.id}`} className="text-xs font-semibold text-brand-600">Check in</Link>
                   ) : (
-                    <StatusPill tone={present ? "green" : "red"}>{present ? "PRESENT" : "ABSENT"}</StatusPill>
+                    <div className="flex items-center gap-2">
+                      <StatusPill tone={present ? "green" : "red"}>{present ? "PRESENT" : "ABSENT"}</StatusPill>
+                      <Link
+                        href={`/dashboard/sessions/${session.id}/receipt`}
+                        aria-label="Open verified receipt"
+                        className="grid size-8 place-items-center rounded-xl border border-black/8 text-emerald-700 dark:border-white/8 dark:text-blue-300"
+                      >
+                        <ShieldCheck className="size-3.5" />
+                      </Link>
+                    </div>
                   )}
                 </div>
               );

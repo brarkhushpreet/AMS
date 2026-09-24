@@ -10,12 +10,10 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <main className="h-dvh overflow-hidden bg-[#f2f1eb] transition-colors dark:bg-[#0d1110] lg:grid lg:grid-cols-[0.88fr_1.12fr]">
-      <section className="paper-noise relative hidden h-dvh overflow-hidden bg-[#141a17] p-9 text-white lg:flex lg:flex-col xl:p-12">
-        <div className="absolute left-[10%] top-[10%] size-60 rounded-full bg-cyan-300/8 blur-[100px]" />
-        <div className="absolute bottom-[7%] right-[8%] size-72 rounded-full bg-violet-400/10 blur-[110px]" />
-        <BrandLogo className="relative z-10 text-white" />
-        <div className="relative z-10 my-auto">
+    <main className="h-dvh overflow-hidden bg-[var(--background)] transition-colors dark:bg-[var(--background)] lg:grid lg:grid-cols-[0.88fr_1.12fr]">
+      <section className="auth-illustration relative hidden h-dvh overflow-hidden border-r border-[var(--border)] bg-[var(--auth-panel)] p-8 text-[var(--foreground)] lg:flex lg:flex-col xl:px-12">
+        <BrandLogo className="relative z-10" />
+        <div className="relative z-10 my-auto w-full max-w-lg self-center py-5">
           <AuthCompanion />
         </div>
       </section>

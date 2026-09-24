@@ -7,7 +7,7 @@ const tones = {
   violet:
     "bg-violet-300/20 text-violet-800 ring-violet-700/8 dark:bg-violet-300/10 dark:text-violet-300 dark:ring-violet-300/10",
   emerald:
-    "bg-emerald-300/20 text-emerald-800 ring-emerald-700/8 dark:bg-lime-300/10 dark:text-lime-300 dark:ring-lime-300/10",
+    "bg-emerald-300/20 text-emerald-800 ring-emerald-700/8 dark:bg-blue-300/10 dark:text-blue-300 dark:ring-lime-300/10",
   amber:
     "bg-amber-300/20 text-amber-800 ring-amber-700/8 dark:bg-amber-300/10 dark:text-amber-300 dark:ring-amber-300/10",
 };
@@ -26,26 +26,26 @@ export function MetricCard({
   tone: keyof typeof tones;
 }) {
   return (
-    <article className="group rounded-[1.35rem] border border-black/8 bg-[#fbfaf5] p-5 shadow-card hover:-translate-y-1 hover:border-black/15 hover:shadow-soft dark:border-white/8 dark:bg-[#151b18] dark:hover:border-white/15">
+    <article className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-[0.62rem] font-extrabold tracking-[0.15em] text-slate-400 uppercase dark:text-white/30">
+          <p className="text-xs font-medium text-[var(--muted)]">
             {label}
           </p>
-          <p className="mt-3 text-3xl font-black tracking-[-0.055em] text-slate-950 dark:text-white">
+          <p className="mt-3 text-3xl font-semibold tracking-tight tabular-nums text-[var(--foreground)]">
             {value}
           </p>
         </div>
         <span
           className={cn(
-            "grid size-11 place-items-center rounded-2xl ring-1 transition-transform group-hover:rotate-3 group-hover:scale-105",
+            "grid size-11 place-items-center rounded-2xl ring-1 transition-transform ",
             tones[tone],
           )}
         >
           <Icon className="size-5" />
         </span>
       </div>
-      <p className="mt-4 text-[0.68rem] font-semibold text-slate-500 dark:text-white/38">{detail}</p>
+      <p className="mt-4 text-[0.68rem] font-semibold text-slate-500 dark:text-white/60">{detail}</p>
     </article>
   );
 }

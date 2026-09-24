@@ -4,6 +4,7 @@ import {
   CalendarCheck2,
   MapPin,
   RadioTower,
+  ShieldCheck,
   UsersRound,
   Waves,
 } from "lucide-react";
@@ -143,20 +144,16 @@ export default async function TeacherAttendancePage({
 
   return (
     <div className="space-y-6">
-      <section className="grid gap-6 rounded-[1.75rem] border border-black/8 bg-[#151a17] p-6 text-white shadow-soft sm:p-8 lg:grid-cols-[1fr_auto] lg:items-end dark:border-white/8 dark:bg-[#151b18]">
+      <section className="border-b border-[var(--border)] pb-6">
         <div>
-          <p className="editorial-label text-lime-300">Session archive</p>
-          <h2 className="mt-3 text-3xl font-black tracking-[-0.05em] sm:text-4xl">
+          <p className="text-sm text-[var(--muted)]">Session archive</p>
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight">
             Attendance, session by session.
           </h2>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-white/45">
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--muted)]">
             Search every classroom, compare verification methods, and isolate the
             sessions that need attention.
           </p>
-        </div>
-        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10">
-          <ArchiveStat label="Stored sessions" value={summarySessions.length} />
-          <ArchiveStat label="Verified check-ins" value={marked} />
         </div>
       </section>
 
@@ -182,29 +179,30 @@ export default async function TeacherAttendancePage({
         resultCount={totalResults}
       />
 
-      <section className="overflow-hidden rounded-[1.5rem] border border-black/8 bg-[#fbfaf5] shadow-card dark:border-white/8 dark:bg-[#151b18]">
+      <section className="overflow-hidden rounded-xl border border-black/8 bg-[var(--surface)] shadow-card dark:border-white/8 dark:bg-[var(--surface)]">
         <div className="flex items-center justify-between border-b border-black/6 px-5 py-4 dark:border-white/7">
           <div>
-            <h3 className="font-black text-slate-950 dark:text-white">Session results</h3>
-            <p className="mt-1 text-[0.68rem] font-semibold text-slate-400 dark:text-white/30">
+            <h3 className="font-semibold text-slate-950 dark:text-white">Session results</h3>
+            <p className="mt-1 text-[0.68rem] font-semibold text-slate-500 dark:text-white/60">
               Showing {sessions.length} of {totalResults}
             </p>
           </div>
           <StatusPill tone="neutral">Newest first</StatusPill>
         </div>
         {sessions.length === 0 ? (
-          <p className="p-12 text-center text-sm font-semibold text-slate-400">
+          <p className="p-12 text-center text-sm font-semibold text-slate-500">
             No sessions match the selected filters.
           </p>
         ) : (
           <div className="no-scrollbar overflow-x-auto">
-            <table className="w-full min-w-[46rem] text-left">
-              <thead className="bg-black/[0.025] text-[0.62rem] font-black tracking-[0.12em] text-slate-400 uppercase dark:bg-white/[0.025] dark:text-white/28">
+            <table className="w-full min-w-[52rem] text-left">
+              <thead className="bg-black/[0.025] text-[0.62rem] font-semibold tracking-[0.12em] text-slate-500 uppercase dark:bg-white/[0.025] dark:text-white/60">
                 <tr>
                   <th className="px-5 py-3">Classroom</th>
                   <th className="px-4 py-3">Date</th>
                   <th className="px-4 py-3">Method</th>
                   <th className="px-4 py-3">Check-ins</th>
+                  <th className="px-4 py-3">Integrity</th>
                   <th className="px-5 py-3 text-right">Rate</th>
                 </tr>
               </thead>
@@ -215,22 +213,38 @@ export default async function TeacherAttendancePage({
                     session.classroom._count.enrollments,
                   );
                   return (
-                    <tr key={session.id} className="hover:bg-emerald-100/20 dark:hover:bg-lime-300/[0.035]">
+                    <tr key={session.id} className="hover:bg-emerald-100/20 dark:hover:bg-blue-300/[0.035]">
                       <td className="px-5 py-4">
-                        <Link href={`/dashboard/teacher/classes/${session.classroomId}`} className="font-extrabold text-slate-800 hover:text-emerald-700 dark:text-white/80 dark:hover:text-lime-300">
+                        <Link href={`/dashboard/teacher/classes/${session.classroomId}`} className="font-semibold text-slate-800 hover:text-emerald-700 dark:text-white/80 dark:hover:text-lime-300">
                           {session.classroom.name}
                         </Link>
-                        <p className="mt-0.5 text-[0.65rem] font-semibold text-slate-400 dark:text-white/28">{session.classroom.subjectCode}</p>
+                        <p className="mt-0.5 text-[0.65rem] font-semibold text-slate-500 dark:text-white/60">{session.classroom.subjectCode}</p>
                       </td>
                       <td className="px-4 py-4 text-xs font-semibold text-slate-500">{formatDate(session.startedAt)}</td>
                       <td className="px-4 py-4">
-                        <span className={cn("inline-flex items-center gap-2 text-xs font-extrabold", session.method === "GEOLOCATION" ? "text-cyan-700 dark:text-cyan-300" : "text-violet-700 dark:text-violet-300")}>
+                        <span className={cn("inline-flex items-center gap-2 text-xs font-semibold", session.method === "GEOLOCATION" ? "text-cyan-700 dark:text-cyan-300" : "text-violet-700 dark:text-violet-300")}>
                           {session.method === "GEOLOCATION" ? <MapPin className="size-3.5" /> : <Waves className="size-3.5" />}
                           {formatMethod(session.method)}
                         </span>
                       </td>
-                      <td className="px-4 py-4 text-xs font-bold text-slate-600 dark:text-white/45">
+                      <td className="px-4 py-4 text-xs font-bold text-slate-600 dark:text-white/60">
                         {session._count.attendanceRecords}/{session.classroom._count.enrollments}
+                      </td>
+                      <td className="px-4 py-4">
+                        {session.status === "CLOSED" ||
+                        session.endsAt <= new Date() ? (
+                          <Link
+                            href={`/dashboard/sessions/${session.id}/receipt`}
+                            className="inline-flex items-center gap-1.5 text-[0.68rem] font-semibold text-emerald-700 hover:text-emerald-900 dark:text-blue-300 dark:hover:text-lime-200"
+                          >
+                            <ShieldCheck className="size-3.5" />
+                            Receipt
+                          </Link>
+                        ) : (
+                          <span className="text-[0.68rem] font-semibold text-slate-300 dark:text-white/18">
+                            Seals on close
+                          </span>
+                        )}
                       </td>
                       <td className="px-5 py-4 text-right">
                         <StatusPill tone={rate >= 75 ? "green" : rate >= 60 ? "amber" : "red"}>{rate}%</StatusPill>
@@ -249,17 +263,6 @@ export default async function TeacherAttendancePage({
           params={filterParams}
         />
       </section>
-    </div>
-  );
-}
-
-function ArchiveStat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="min-w-32 bg-white/[0.055] px-4 py-3">
-      <p className="font-mono text-lg font-bold text-lime-300">{value}</p>
-      <p className="mt-0.5 text-[0.58rem] font-bold tracking-wide text-white/35 uppercase">
-        {label}
-      </p>
     </div>
   );
 }

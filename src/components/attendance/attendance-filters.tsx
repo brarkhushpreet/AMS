@@ -119,21 +119,22 @@ export function AttendanceFilters({
   ].filter(Boolean) as Array<{ key: keyof FilterValues; label: string }>;
 
   return (
-    <section className="rounded-[1.5rem] border border-black/8 bg-[#fbfaf5] p-4 shadow-card dark:border-white/8 dark:bg-[#151b18] sm:p-5">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
+    <section className="rounded-xl border border-black/8 bg-[var(--surface)] p-4 shadow-card dark:border-white/8 dark:bg-[var(--surface)] sm:p-5">
+      <div className="flex flex-col gap-4 2xl:flex-row 2xl:items-center">
         {showSearch ? (
           <form onSubmit={submitSearch} className="relative min-w-0 flex-1">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400 dark:text-white/30" />
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-500 dark:text-white/60" />
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               type="search"
+              aria-label="Search classroom or subject code"
               placeholder="Search classroom or subject code"
-              className="h-11 w-full rounded-xl border border-black/10 bg-white/70 pl-10 pr-24 text-xs font-semibold text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/8 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-white/25"
+              className="h-11 w-full rounded-xl border border-black/10 bg-white/70 pl-10 pr-24 text-xs font-semibold text-slate-800 shadow-sm outline-none placeholder:text-slate-500 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/8 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-white/25"
             />
             <button
               type="submit"
-              className="absolute right-1.5 top-1/2 inline-flex h-8 -translate-y-1/2 items-center gap-1.5 rounded-lg bg-[#151a17] px-3 text-[0.65rem] font-extrabold text-white hover:bg-black dark:bg-[#b5f44b] dark:text-[#172008]"
+              className="absolute right-1.5 top-1/2 inline-flex h-8 -translate-y-1/2 items-center gap-1.5 rounded-lg bg-[#151a17] px-3 text-[0.65rem] font-semibold text-white hover:bg-black dark:bg-[var(--accent)] dark:text-[var(--accent-ink)]"
             >
               {isPending ? (
                 <LoaderCircle className="size-3 animate-spin" />
@@ -148,7 +149,7 @@ export function AttendanceFilters({
         <div
           className={
             showClassroom
-              ? "grid gap-2 sm:grid-cols-2 xl:w-[44rem] xl:grid-cols-4"
+              ? "grid gap-2 sm:grid-cols-2 xl:grid-cols-4 2xl:w-[44rem]"
               : "grid w-full gap-2 sm:grid-cols-3"
           }
         >
@@ -182,12 +183,12 @@ export function AttendanceFilters({
       </div>
 
       <div className="mt-4 flex min-h-8 flex-wrap items-center gap-2 border-t border-black/6 pt-4 dark:border-white/7">
-        <span className="mr-1 inline-flex items-center gap-1.5 text-[0.65rem] font-extrabold tracking-wide text-slate-400 uppercase dark:text-white/28">
+        <span className="mr-1 inline-flex items-center gap-1.5 text-[0.65rem] font-semibold tracking-wide text-slate-500 uppercase dark:text-white/60">
           <SlidersHorizontal className="size-3.5" />
           {resultCount} result{resultCount === 1 ? "" : "s"}
         </span>
         {activeTags.length === 0 ? (
-          <span className="text-xs font-semibold text-slate-400 dark:text-white/32">
+          <span className="text-xs font-semibold text-slate-500 dark:text-white/60">
             No filters applied
           </span>
         ) : (
@@ -200,7 +201,7 @@ export function AttendanceFilters({
                   if (tag.key === "q") setSearch("");
                   setFilter(tag.key, "");
                 }}
-                className="inline-flex items-center gap-1.5 rounded-full border border-emerald-700/10 bg-emerald-100/60 px-2.5 py-1.5 text-[0.65rem] font-extrabold text-emerald-800 hover:border-emerald-700/20 hover:bg-emerald-100 dark:border-lime-300/10 dark:bg-lime-300/8 dark:text-lime-300 dark:hover:bg-lime-300/12"
+                className="inline-flex items-center gap-1.5 rounded-full border border-emerald-700/10 bg-emerald-100/60 px-2.5 py-1.5 text-[0.65rem] font-semibold text-emerald-800 hover:border-emerald-700/20 hover:bg-emerald-100 dark:border-blue-300/10 dark:bg-blue-300/8 dark:text-blue-300 dark:hover:bg-blue-300/12"
               >
                 {tag.label}
                 <X className="size-3" />
@@ -209,7 +210,7 @@ export function AttendanceFilters({
             <button
               type="button"
               onClick={clearAll}
-              className="ml-1 text-[0.65rem] font-extrabold text-slate-500 underline decoration-slate-300 underline-offset-4 hover:text-slate-900 dark:text-white/38 dark:decoration-white/20 dark:hover:text-white"
+              className="ml-1 text-[0.65rem] font-semibold text-slate-500 underline decoration-slate-300 underline-offset-4 hover:text-slate-900 dark:text-white/60 dark:decoration-white/20 dark:hover:text-white"
             >
               Clear all
             </button>

@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://classpulse.local/schemas/attendance-report.v1.json",
+  "title": "ClassPulse signed attendance report",
+  "type": "object",
+  "required": [
+    "schema",
+    "reportId",
+    "algorithm",
+    "payload",
+    "payloadHash",
+    "signature",
+    "publicKey",
+    "auditEvents"
+  ],
+  "properties": {
+    "schema": {
+      "const": "classpulse.attendance-report.v1"
+    },
+    "reportId": {
+      "type": "string"
+    },
+    "algorithm": {
+      "const": "Ed25519"
+    },
+    "payload": {
+      "type": "object",
+      "required": [
+        "version",
+        "sessionId",
+        "classroomId",
+        "method",
+        "startedAt",
+        "endedAt",
+        "eventCount",
+        "recordCount",
+        "headHash",
+        "generatedAt"
+      ]
+    },
+    "payloadHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "signature": {
+      "type": "string"
+    },
+    "publicKey": {
+      "type": "string"
+    },
+    "auditEvents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "sequence",
+          "type",
+          "payload",
+          "previousHash",
+          "eventHash",
+          "createdAt"
+        ]
+      }
+    }
+  }
+}

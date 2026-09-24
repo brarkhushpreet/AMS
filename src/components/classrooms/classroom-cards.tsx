@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { ArrowUpRight, BookOpen, Plus } from "lucide-react";
-import { StatusPill } from "@/components/ui/status-pill";
 import { buttonVariants } from "@/components/ui/button";
 import type { getTeacherDashboard } from "@/lib/dashboard-data";
 import { cn, formatMethod } from "@/lib/utils";
@@ -13,48 +12,43 @@ export function TeacherClassCard({
   index: number;
 }) {
   const accents = [
-    "from-cyan-400 to-emerald-400",
-    "from-violet-400 to-fuchsia-400",
-    "from-lime-400 to-emerald-400",
+    "bg-blue-500/60",
+    "bg-violet-500/60",
+    "bg-amber-500/60",
   ];
   return (
     <Link
       href={`/dashboard/teacher/classes/${classroom.id}`}
-      className="group overflow-hidden rounded-[1.4rem] border border-black/8 bg-[#fbfaf5] shadow-card hover:-translate-y-1 hover:border-emerald-700/18 hover:shadow-soft dark:border-white/8 dark:bg-[#151b18] dark:hover:border-lime-300/18"
+      className="group block min-w-0 self-start overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] transition-colors hover:border-[var(--accent)]/50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent)]"
     >
-      <div className={cn("h-1.5 bg-linear-to-r", accents[index % accents.length])} />
-      <div className="p-5">
+      <div className={cn("h-0.5", accents[index % accents.length])} />
+      <div className="p-4">
         <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-[0.68rem] font-black tracking-[0.12em] text-slate-400 uppercase">
+          <div className="min-w-0">
+            <p className="truncate text-[0.625rem] font-medium tracking-[0.08em] text-[var(--muted)] uppercase">
               {classroom.code} · {classroom.term}
             </p>
-            <h4 className="mt-2 text-lg font-black tracking-tight text-slate-950">
+            <h4 className="mt-2 truncate text-base font-semibold tracking-tight text-[var(--foreground)]" title={classroom.name}>
               {classroom.name}
             </h4>
-            <p className="mt-1 text-xs font-semibold text-slate-400">
-              {classroom.section || "All sections"} · Code {classroom.joinCode}
+            <p className="mt-1 truncate text-[0.6875rem] text-[var(--muted)]">
+              {classroom.section ? `Section ${classroom.section}` : "All sections"} · {classroom.joinCode}
             </p>
           </div>
-          <span className="grid size-9 place-items-center rounded-xl bg-black/4 text-slate-400 group-hover:rotate-6 group-hover:bg-emerald-100 group-hover:text-emerald-700 dark:bg-white/5 dark:text-white/35 dark:group-hover:bg-lime-300/10 dark:group-hover:text-lime-300">
-            <ArrowUpRight className="size-4" />
-          </span>
+          {classroom.activeSession ? (
+            <span title={`${formatMethod(classroom.activeSession.method)} session running`} className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-[var(--accent-soft)] px-2 py-1 text-[0.625rem] font-medium text-[var(--accent)]">
+              <span className="size-1.5 rounded-full bg-current motion-safe:animate-pulse" />
+              Live
+            </span>
+          ) : (
+            <ArrowUpRight className="mt-0.5 size-4 shrink-0 text-[var(--muted)] transition-colors group-hover:text-[var(--accent)]" />
+          )}
         </div>
-        <div className="mt-6 grid grid-cols-3 gap-3 border-t border-black/6 pt-4 dark:border-white/7">
+        <div className="mt-4 grid grid-cols-3 gap-3 border-t border-[var(--border)] pt-3">
           <MiniStat label="Students" value={classroom.students} />
           <MiniStat label="Sessions" value={classroom.sessions} />
           <MiniStat label="Attendance" value={`${classroom.rate}%`} />
         </div>
-        {classroom.activeSession && (
-          <div className="mt-4 flex items-center justify-between rounded-xl bg-emerald-100/50 px-3 py-2.5 dark:bg-lime-300/7">
-            <StatusPill tone="green" pulse>
-              Live now
-            </StatusPill>
-            <span className="text-[0.68rem] font-bold text-emerald-700">
-              {formatMethod(classroom.activeSession.method)}
-            </span>
-          </div>
-        )}
       </div>
     </Link>
   );
@@ -63,22 +57,22 @@ export function TeacherClassCard({
 function MiniStat({ label, value }: { label: string; value: string | number }) {
   return (
     <div>
-      <p className="text-base font-black text-slate-800 dark:text-white">{value}</p>
-      <p className="mt-0.5 text-[0.62rem] font-bold text-slate-400 dark:text-white/28">{label}</p>
+      <p className="text-sm font-semibold tabular-nums text-[var(--foreground)]">{value}</p>
+      <p className="mt-0.5 text-[0.625rem] text-[var(--muted)]">{label}</p>
     </div>
   );
 }
 
 export function EmptyClassrooms({ role }: { role: "teacher" | "student" }) {
   return (
-    <div className="rounded-3xl border border-dashed border-slate-300 bg-[#fbfaf5] p-10 text-center dark:border-white/15 dark:bg-[#151b18]">
-      <span className="mx-auto grid size-13 place-items-center rounded-2xl bg-blue-50 text-blue-600">
+    <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface)] px-6 py-8 text-center">
+      <span className="mx-auto grid size-10 place-items-center rounded-lg bg-[var(--accent-soft)] text-[var(--accent)]">
         <BookOpen className="size-5" />
       </span>
-      <h3 className="mt-5 text-lg font-black text-slate-950">
+      <h3 className="mt-4 text-base font-semibold text-[var(--foreground)]">
         {role === "teacher" ? "Create your first classroom" : "Join your first classroom"}
       </h3>
-      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
+      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--muted)]">
         {role === "teacher"
           ? "Set up a room, share its code, and start collecting useful attendance data."
           : "Ask your teacher for the classroom code, then join in seconds."}

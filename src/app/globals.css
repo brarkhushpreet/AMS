@@ -6,13 +6,13 @@
   --font-sans: "Segoe UI Variable", "Aptos", "Inter", sans-serif;
   --font-serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
   --color-ink-950: #111614;
-  --color-brand-50: #effdf8;
-  --color-brand-100: #d7faed;
-  --color-brand-500: #11a67d;
-  --color-brand-600: #078466;
-  --color-brand-700: #086a55;
-  --shadow-soft: 0 24px 80px -38px rgba(15, 55, 47, 0.35);
-  --shadow-card: 0 16px 44px -28px rgba(17, 24, 21, 0.22);
+  --color-brand-50: #edf2fc;
+  --color-brand-100: #dae5f9;
+  --color-brand-500: #4a73c6;
+  --color-brand-600: #345db3;
+  --color-brand-700: #274c98;
+  --shadow-soft: 0 2px 8px rgba(20, 25, 35, 0.04);
+  --shadow-card: 0 1px 2px rgba(20, 25, 35, 0.03);
   --animate-float: float 6s ease-in-out infinite;
   --animate-pulse-soft: pulse-soft 2.4s ease-in-out infinite;
 
@@ -41,38 +41,86 @@
 
 :root {
   color-scheme: light;
-  --background: #f2f1eb;
-  --surface: #fbfaf5;
+  --background: #f7f8fa;
+  --surface: #ffffff;
   --surface-raised: #ffffff;
-  --surface-soft: #e9e8e1;
-  --foreground: #111614;
-  --muted: #666c68;
-  --border: #dcdcd4;
-  --border-strong: #c7c8bf;
-  --accent: #a9f03b;
-  --accent-ink: #18220b;
-  --cyan: #4dd8e7;
-  --violet: #9f8bff;
-  --chart-grid: #dedfd8;
-  --chart-muted: #858b86;
+  --surface-soft: #eef1f5;
+  --foreground: #202631;
+  --muted: #657083;
+  --border: #e2e6ec;
+  --border-strong: #b9c2d0;
+  --accent: #345db3;
+  --accent-hover: #274c98;
+  --accent-ink: #ffffff;
+  --accent-soft: #edf2fc;
+  --cyan: #467e91;
+  --violet: #7a6fa5;
+  --chart-grid: #e9ecf1;
+  --chart-muted: #697589;
+  --auth-panel: #eef2f9;
+  --companion-body: #a4b9e4;
+  --companion-outline: #708ab9;
+  --companion-face: #e4ebfa;
+  --companion-ink: #3e547b;
+  --companion-highlight: #cfdcf6;
+  --companion-guide: #d8e1f0;
+  --banner-start: #ffffff;
+  --banner-end: #dbe7fc;
+  --banner-line: #96b0df;
+  --banner-border: #d3dff1;
+  --presence-base: #ffffff;
+  --presence-tint: #eff5ff;
+  --presence-line: #dce6f5;
 }
 
 .dark {
   color-scheme: dark;
-  --background: #0d1110;
-  --surface: #131917;
-  --surface-raised: #181f1c;
-  --surface-soft: #202823;
-  --foreground: #f4f2e9;
-  --muted: #9ba39d;
-  --border: #29312d;
-  --border-strong: #39443e;
-  --accent: #b5f44b;
-  --accent-ink: #172008;
-  --cyan: #67e8f9;
-  --violet: #b4a3ff;
-  --chart-grid: #28312d;
-  --chart-muted: #87918b;
+  --background: #151719;
+  --surface: #1b1e22;
+  --surface-raised: #22262c;
+  --surface-soft: #262b32;
+  --foreground: #e9edf3;
+  --muted: #a0aabb;
+  --border: #30363f;
+  --border-strong: #515c6d;
+  --accent: #a5bdf0;
+  --accent-hover: #c0d1f5;
+  --accent-ink: #192946;
+  --accent-soft: #242f43;
+  --cyan: #87b8c9;
+  --violet: #b4a8d4;
+  --chart-grid: #303640;
+  --chart-muted: #9ba6b8;
+  --auth-panel: #1a202c;
+  --companion-body: #728cbd;
+  --companion-outline: #92a9d3;
+  --companion-face: #293b59;
+  --companion-ink: #d1def5;
+  --companion-highlight: #a4bbe3;
+  --companion-guide: #2f3b51;
+  --banner-start: #202b3d;
+  --banner-end: #304d76;
+  --banner-line: #647fa8;
+  --banner-border: #3d5373;
+  --presence-base: #1b222d;
+  --presence-tint: #233249;
+  --presence-line: #334359;
+}
+
+.classroom-banner {
+  border-color: var(--banner-border);
+  background: linear-gradient(105deg, var(--banner-start) 25%, var(--banner-end));
+  box-shadow: inset 4px 0 0 var(--accent), 0 3px 12px -8px rgb(30 60 110 / 16%);
+}
+
+.presence-canvas {
+  background: radial-gradient(ellipse at 50% 45%, var(--presence-tint), var(--presence-base) 72%);
+}
+
+.presence-canvas-grid {
+  background-image: radial-gradient(var(--presence-line) .85px, transparent .85px);
+  background-size: 18px 18px;
+  mask-image: linear-gradient(90deg, transparent, black 20%, black 80%, transparent);
 }
 
 * {
@@ -147,13 +195,12 @@ textarea:focus-visible {
 
 .theme-toggle:hover {
   border-color: var(--border-strong);
-  transform: translateY(-1px) rotate(4deg);
 }
 
 .editorial-label {
   font-size: 0.66rem;
-  font-weight: 800;
-  letter-spacing: 0.18em;
+  font-weight: 600;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
@@ -166,7 +213,7 @@ textarea:focus-visible {
   inset: 0;
   pointer-events: none;
   content: "";
-  opacity: 0.14;
+  opacity: 0;
   background-image:
     radial-gradient(circle at 20% 30%, currentColor 0.45px, transparent 0.8px),
     radial-gradient(circle at 70% 65%, currentColor 0.35px, transparent 0.75px);
@@ -180,7 +227,7 @@ textarea:focus-visible {
 }
 
 .dark .paper-noise::after {
-  opacity: 0.045;
+  opacity: 0;
   mix-blend-mode: screen;
 }
 

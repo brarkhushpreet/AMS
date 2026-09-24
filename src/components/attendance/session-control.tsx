@@ -63,6 +63,7 @@ export function SessionControl({
       }
     }
 
+    try {
     const response = await fetch("/api/attendance/sessions", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -88,6 +89,10 @@ export function SessionControl({
       description: `${formatMethod(method)} verification has started.`,
     });
     router.refresh();
+    } catch {
+      setError("Connection lost. Check your connection and try again.");
+      toast.error("Could not reach the server");
+    } finally { setPending(false); }
   }
 
   if (activeSession) {
@@ -95,19 +100,22 @@ export function SessionControl({
       <LiveSessionCard
         session={activeSession}
         onClosed={() => router.refresh()}
+        onOpenReceipt={(sessionId) =>
+          router.push(`/dashboard/sessions/${sessionId}/receipt`)
+        }
       />
     );
   }
 
   return (
-    <form action={start} className="rounded-[1.5rem] border border-black/8 bg-[#fbfaf5] p-5 shadow-card sm:p-6 dark:border-white/8 dark:bg-[#151b18]">
+    <form action={start} className="rounded-xl border border-black/8 bg-[var(--surface)] p-5 shadow-card sm:p-6 dark:border-white/8 dark:bg-[var(--surface)]">
       <div className="flex items-start gap-3">
         <span className="grid size-11 place-items-center rounded-2xl bg-blue-50 text-blue-600">
           <RadioTower className="size-5" />
         </span>
         <div>
-          <h3 className="font-black text-slate-950">Start attendance</h3>
-          <p className="mt-1 text-xs font-semibold text-slate-400">
+          <h3 className="font-semibold text-slate-950">Start attendance</h3>
+          <p className="mt-1 text-xs font-semibold text-slate-500">
             Choose the right presence check for this session.
           </p>
         </div>
@@ -240,8 +248,8 @@ function MethodButton({
         <Icon className="size-4" />
       </span>
       <span>
-        <span className="block text-sm font-extrabold text-slate-800">{title}</span>
-        <span className="block text-[0.65rem] font-semibold text-slate-400">{detail}</span>
+        <span className="block text-sm font-semibold text-slate-800">{title}</span>
+        <span className="block text-[0.65rem] font-semibold text-slate-500">{detail}</span>
       </span>
     </button>
   );
@@ -250,17 +258,22 @@ function MethodButton({
 function LiveSessionCard({
   session,
   onClosed,
+  onOpenReceipt,
 }: {
   session: ActiveSession;
   onClosed: () => void;
+  onOpenReceipt: (sessionId: string) => void;
 }) {
   const [remaining, setRemaining] = useState("");
   const [closing, setClosing] = useState(false);
   const [signalRunning, setSignalRunning] = useState(false);
+  const [connecting, setConnecting] = useState(false);
   const [frequency, setFrequency] = useState<number | null>(null);
   const [signalError, setSignalError] = useState("");
   const socketRef = useRef<WebSocket | null>(null);
   const audioRef = useRef<AudioContext | null>(null);
+  const clockOffsetRef = useRef(0);
+  const [distributed, setDistributed] = useState<boolean | null>(null);
 
   useEffect(() => {
     const update = () => {
@@ -283,6 +296,9 @@ function LiveSessionCard({
   );
 
   async function startSignal() {
+    if (socketRef.current && socketRef.current.readyState < WebSocket.CLOSING) return;
+    if (connecting) return;
+    setConnecting(true);
     setSignalError("");
     try {
       const ticketResponse = await fetch(`/api/realtime/ticket?sessionId=${session.id}`);
@@ -291,11 +307,10 @@ function LiveSessionCard({
 
       const AudioContextClass = window.AudioContext;
       const audio = new AudioContextClass();
-      await audio.resume();
       audioRef.current = audio;
+      await audio.resume();
 
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const socket = new WebSocket(`${protocol}//${window.location.host}/ws/attendance`);
+      const socket = new WebSocket(payload.websocketUrl);
       socketRef.current = socket;
       socket.addEventListener("open", () => {
         socket.send(
@@ -309,12 +324,26 @@ function LiveSessionCard({
       socket.addEventListener("message", (event) => {
         const message = JSON.parse(event.data);
         if (message.type === "ready") {
+          clockOffsetRef.current = Number(message.serverTime ?? Date.now()) - Date.now();
+          setDistributed(Boolean(message.distributedCoordinator));
           setSignalRunning(true);
-          toast.success("Room signal started", {
-            description: "The rotating ultrasound sequence is now live.",
+          setConnecting(false);
+        }
+        if ((message.type === "coordinator" && !message.available) || (message.type === "ready" && message.coordinatorUnavailable)) {
+          setFrequency(null); setSignalError("The room signal is paused while its connection recovers."); return;
+        }
+        if (message.type === "ready") {
+          clockOffsetRef.current =
+            Number(message.serverTime ?? Date.now()) - Date.now();
+          setDistributed(Boolean(message.distributedCoordinator));
+          setSignalRunning(true);
+          toast.success("Room signal connected", {
+            description:
+              "Waiting for the next scheduled tone.",
           });
         }
         if (message.type !== "frequency") return;
+        setSignalError("");
         setFrequency(message.frequency);
 
         const oscillator = audio.createOscillator();
@@ -324,7 +353,12 @@ function LiveSessionCard({
         oscillator.connect(gain);
         gain.connect(audio.destination);
 
-        const delay = Math.max(0.02, (message.emittedAt - Date.now()) / 1_000);
+        const delay = Math.max(
+          0.02,
+          (message.emittedAt -
+            (Date.now() + clockOffsetRef.current)) /
+            1_000,
+        );
         const startsAt = audio.currentTime + delay;
         gain.gain.setValueAtTime(0.0001, startsAt);
         gain.gain.exponentialRampToValueAtTime(0.035, startsAt + 0.025);
@@ -332,9 +366,20 @@ function LiveSessionCard({
         gain.gain.exponentialRampToValueAtTime(0.0001, startsAt + message.durationMs / 1_000);
         oscillator.start(startsAt);
         oscillator.stop(startsAt + message.durationMs / 1_000 + 0.02);
+        oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
       });
-      socket.addEventListener("close", () => setSignalRunning(false));
+      socket.addEventListener("close", () => {
+        setSignalRunning(false); setConnecting(false); setFrequency(null);
+        if (audio.state !== "closed") void audio.close();
+      });
+      socket.addEventListener("error", () => {
+        setSignalError("The room connection was interrupted. Try starting the signal again.");
+        socket.close();
+      });
     } catch (error) {
+      setConnecting(false);
+      socketRef.current?.close();
+      if (audioRef.current && audioRef.current.state !== "closed") void audioRef.current.close();
       const message =
         error instanceof Error ? error.message : "The signal could not start.";
       setSignalError(message);
@@ -344,6 +389,7 @@ function LiveSessionCard({
 
   async function closeSession() {
     setClosing(true);
+    try {
     const response = await fetch(`/api/attendance/sessions/${session.id}/close`, {
       method: "POST",
     });
@@ -352,17 +398,28 @@ function LiveSessionCard({
       toast.error("Could not end attendance");
       return;
     }
+    const result = await response.json();
     socketRef.current?.close();
-    await audioRef.current?.close();
+    if (audioRef.current && audioRef.current.state !== "closed") await audioRef.current.close();
     setClosing(false);
     toast.success("Attendance ended", {
-      description: "The session has been closed and saved.",
+      description:
+        "The session was closed and its audit chain was cryptographically sealed.",
+      action: result.reportId
+        ? {
+            label: "View receipt",
+            onClick: () => onOpenReceipt(session.id),
+          }
+        : undefined,
     });
     onClosed();
+    } catch {
+      toast.error("Connection lost. Refresh to check whether the session ended.");
+    } finally { setClosing(false); }
   }
 
   return (
-    <div className="overflow-hidden rounded-[1.5rem] border border-emerald-700/12 bg-[#fbfaf5] shadow-card dark:border-lime-300/10 dark:bg-[#151b18]">
+    <div className="overflow-hidden rounded-xl border border-emerald-700/12 bg-[var(--surface)] shadow-card dark:border-blue-300/10 dark:bg-[var(--surface)]">
       <div className="bg-[#151a17] px-5 py-4 text-white dark:bg-[#101513]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -371,7 +428,7 @@ function LiveSessionCard({
             </span>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-black">Attendance is live</h3>
+                <h3 className="font-semibold">Attendance is live</h3>
                 <StatusPill tone="green" pulse>Active</StatusPill>
               </div>
               <p className="mt-1 text-xs font-semibold text-white/42">
@@ -380,7 +437,7 @@ function LiveSessionCard({
             </div>
           </div>
           <div className="rounded-xl border border-white/10 bg-white/6 px-3 py-2 text-center">
-            <p className="font-mono text-lg font-black">{remaining}</p>
+            <p className="font-mono text-lg font-semibold">{remaining}</p>
             <p className="text-[0.58rem] font-bold text-emerald-50">remaining</p>
           </div>
         </div>
@@ -398,11 +455,11 @@ function LiveSessionCard({
                 <AudioLines className="size-5" />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-extrabold text-slate-800">
-                  {signalRunning ? "Rotating room signal is playing" : "Room signal needs audio permission"}
+                <p className="text-sm font-semibold text-slate-800">
+                  {signalRunning && frequency ? "Room signal is playing" : signalRunning ? "Waiting for the next room signal" : "Start the classroom speaker"}
                 </p>
                 <p className="mt-1 text-xs font-semibold text-slate-500">
-                  {frequency ? `${(frequency / 1_000).toFixed(1)} kHz now · changes every 1.1 s` : "Use a classroom speaker for better coverage."}
+                  {frequency ? `${(frequency / 1_000).toFixed(1)} kHz now · hidden from student clients` : "Use a classroom speaker for better coverage."}
                 </p>
               </div>
               {signalRunning && (
@@ -419,10 +476,18 @@ function LiveSessionCard({
             </div>
             {signalError && <p className="mt-3 text-xs font-bold text-red-600">{signalError}</p>}
             {!signalRunning && (
-              <Button type="button" variant="secondary" className="mt-4 w-full" onClick={startSignal}>
+              <Button type="button" variant="secondary" className="mt-4 w-full" onClick={startSignal} disabled={connecting}>
                 <Volume2 className="size-4" />
-                Start room signal
+                {connecting ? "Connecting…" : "Start room signal"}
               </Button>
+            )}
+            {signalRunning && distributed !== null && (
+              <p className="mt-3 flex items-center justify-center gap-2 text-[0.65rem] font-bold text-slate-500 dark:text-white/60">
+                <RadioTower className="size-3.5" />
+                {distributed
+                  ? "Room connection established"
+                  : "Local room connection"}
+              </p>
             )}
           </>
         ) : (
@@ -431,7 +496,7 @@ function LiveSessionCard({
               <LocateFixed className="size-5" />
             </span>
             <div>
-              <p className="text-sm font-extrabold text-slate-800">Classroom radius is active</p>
+              <p className="text-sm font-semibold text-slate-800">Classroom radius is active</p>
               <p className="mt-1 text-xs font-semibold text-slate-500">
                 Students within {session.radiusMeters ?? 40} m can check in.
               </p>
@@ -442,7 +507,7 @@ function LiveSessionCard({
           {closing ? <LoaderCircle className="size-4 animate-spin" /> : <Square className="size-3.5 fill-current" />}
           {closing ? "Ending session…" : "End attendance"}
         </Button>
-        <p className="mt-3 flex items-center justify-center gap-1.5 text-[0.65rem] font-semibold text-slate-400">
+        <p className="mt-3 flex items-center justify-center gap-1.5 text-[0.65rem] font-semibold text-slate-500">
           <Clock3 className="size-3" />
           The session closes automatically when the timer reaches zero.
         </p>

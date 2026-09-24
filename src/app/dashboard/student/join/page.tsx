@@ -13,7 +13,7 @@ export default async function JoinClassroomPage() {
         <span className="grid size-13 place-items-center rounded-2xl bg-blue-50 text-blue-600">
           <KeyRound className="size-5" />
         </span>
-        <h2 className="mt-6 text-3xl font-black tracking-[-0.04em] text-slate-950">
+        <h2 className="mt-6 text-3xl font-semibold tracking-[-0.04em] text-slate-950">
           Join a classroom
         </h2>
         <p className="mt-3 leading-7 text-slate-500">

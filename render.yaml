@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: classpulse-realtime
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile.realtime
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: AUTH_SECRET
+        sync: false
+      - key: PRESENCE_PROOF_SECRET
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false

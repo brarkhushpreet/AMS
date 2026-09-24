@@ -144,8 +144,8 @@ export function RosterImport({ classroomId }: { classroomId: string }) {
             <FileSpreadsheet className="size-4.5" />
           </span>
           <div>
-            <h3 className="font-black text-slate-950">Import roster</h3>
-            <p className="mt-1 text-xs font-semibold text-slate-400">
+            <h3 className="font-semibold text-slate-950">Import roster</h3>
+            <p className="mt-1 text-xs font-semibold text-slate-500">
               CSV · up to 500 students · invitations expire in 30 days
             </p>
           </div>
@@ -153,7 +153,7 @@ export function RosterImport({ classroomId }: { classroomId: string }) {
         <button
           type="button"
           onClick={downloadTemplate}
-          className="inline-flex items-center gap-2 text-xs font-extrabold text-brand-600 hover:text-brand-700"
+          className="inline-flex items-center gap-2 text-xs font-semibold text-brand-600 hover:text-brand-700"
         >
           <Download className="size-3.5" />
           Template
@@ -179,10 +179,10 @@ export function RosterImport({ classroomId }: { classroomId: string }) {
           className="mt-5 flex w-full flex-col items-center rounded-xl border border-dashed border-slate-300 bg-slate-50/60 px-5 py-7 text-center hover:border-blue-300 hover:bg-blue-50/40"
         >
           <UploadCloud className="size-6 text-blue-500" />
-          <span className="mt-3 text-sm font-extrabold text-slate-700">
+          <span className="mt-3 text-sm font-semibold text-slate-700">
             Choose your roster CSV
           </span>
-          <span className="mt-1 text-xs font-semibold text-slate-400">
+          <span className="mt-1 text-xs font-semibold text-slate-500">
             name, email, registrationNumber, department, class, batch
           </span>
         </button>
@@ -190,8 +190,8 @@ export function RosterImport({ classroomId }: { classroomId: string }) {
         <div className="mt-5">
           <div className="mb-3 flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2">
             <div className="min-w-0">
-              <p className="truncate text-xs font-extrabold text-slate-700">{fileName}</p>
-              <p className="text-[0.65rem] font-semibold text-slate-400">
+              <p className="truncate text-xs font-semibold text-slate-700">{fileName}</p>
+              <p className="text-[0.65rem] font-semibold text-slate-500">
                 {rows.length} row{rows.length === 1 ? "" : "s"} ready
               </p>
             </div>
@@ -201,7 +201,7 @@ export function RosterImport({ classroomId }: { classroomId: string }) {
                 setRows([]);
                 setFileName("");
               }}
-              className="grid size-8 place-items-center rounded-lg text-slate-400 hover:bg-white hover:text-red-500"
+              className="grid size-8 place-items-center rounded-lg text-slate-500 hover:bg-white hover:text-red-500"
               aria-label="Remove file"
             >
               <X className="size-4" />
@@ -209,7 +209,7 @@ export function RosterImport({ classroomId }: { classroomId: string }) {
           </div>
           <div className="no-scrollbar overflow-x-auto rounded-xl border border-slate-200">
             <table className="w-full min-w-[34rem] text-left text-xs">
-              <thead className="bg-slate-50 text-[0.65rem] tracking-wide text-slate-400 uppercase">
+              <thead className="bg-slate-50 text-[0.65rem] tracking-wide text-slate-500 uppercase">
                 <tr>
                   <th className="px-3 py-2.5">Name</th>
                   <th className="px-3 py-2.5">Email</th>
@@ -232,7 +232,7 @@ export function RosterImport({ classroomId }: { classroomId: string }) {
             </table>
           </div>
           {rows.length > 5 && (
-            <p className="mt-2 text-center text-[0.65rem] font-semibold text-slate-400">
+            <p className="mt-2 text-center text-[0.65rem] font-semibold text-slate-500">
               + {rows.length - 5} more rows
             </p>
           )}

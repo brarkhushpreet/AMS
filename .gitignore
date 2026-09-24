@@ -8,10 +8,14 @@
 
 # testing
 /coverage
+/.test-runtime/
 
 # next.js
 /.next/
 /out/
+/.open-next/
+/.wrangler/
+/cloudflare-env.d.ts
 /src/generated/prisma/
 
 # production

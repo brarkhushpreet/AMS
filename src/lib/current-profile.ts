@@ -15,6 +15,7 @@ export const currentProfile = cache(async () => {
       email: true,
       name: true,
       role: true,
+      attendancePasskeyRequired: true,
       student: { select: { id: true } },
       teacher: { select: { id: true } },
     },

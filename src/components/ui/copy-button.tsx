@@ -38,7 +38,7 @@ export function CopyButton({
       type="button"
       onClick={copy}
       className={cn(
-        "grid size-9 place-items-center rounded-xl border border-white/10 bg-white/8 text-cyan-200 hover:-translate-y-0.5 hover:bg-white/14 hover:text-white",
+        "grid size-9 place-items-center rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--accent)] hover:border-[var(--accent)] hover:bg-[var(--accent-soft)]",
         className,
       )}
       aria-label={`${label} ${value}`}

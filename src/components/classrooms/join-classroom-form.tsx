@@ -57,14 +57,14 @@ export function JoinClassroomForm() {
       <div>
         <Label htmlFor="joinCode">Classroom code</Label>
         <div className="relative">
-          <KeyRound className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+          <KeyRound className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
           <Input
             id="joinCode"
             name="joinCode"
             placeholder="AB7K9QX"
             minLength={6}
             maxLength={10}
-            className="pl-10 font-black tracking-[0.25em] uppercase"
+            className="pl-10 font-semibold tracking-[0.25em] uppercase"
             required
           />
         </div>

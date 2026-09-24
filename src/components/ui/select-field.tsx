@@ -45,13 +45,13 @@ export function SelectField({
         id={id}
         aria-label={ariaLabel}
         className={cn(
-          "group flex h-11 w-full items-center justify-between gap-3 rounded-xl border border-black/10 bg-white/70 px-3.5 text-left text-xs font-bold text-slate-700 shadow-sm outline-none hover:border-black/20 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/8 data-[placeholder]:text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-white/75 dark:hover:border-white/20 dark:data-[placeholder]:text-white/30",
+          "group flex h-10 w-full items-center justify-between gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-left text-[0.8125rem] font-medium text-[var(--foreground)] outline-none transition-colors hover:border-[var(--muted)] focus-visible:border-[var(--accent)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20 data-[state=open]:border-[var(--accent)] data-[placeholder]:text-[var(--muted)] disabled:cursor-not-allowed disabled:opacity-50",
           className,
         )}
       >
         <Select.Value placeholder={placeholder} />
         <Select.Icon>
-          <ChevronDown className="size-3.5 text-slate-400 transition-transform group-data-[state=open]:rotate-180 dark:text-white/35" />
+          <ChevronDown className="size-3.5 shrink-0 text-[var(--muted)] transition-transform duration-150 group-data-[state=open]:rotate-180 motion-reduce:transition-none" />
         </Select.Icon>
       </Select.Trigger>
       <Select.Portal>
@@ -59,25 +59,25 @@ export function SelectField({
           position="popper"
           sideOffset={6}
           collisionPadding={12}
-          className="z-[100] min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-2xl border border-black/10 bg-[#fbfaf5]/98 p-1.5 text-[#111614] shadow-[0_24px_70px_-28px_rgba(9,20,15,.5)] backdrop-blur-xl data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out data-[state=open]:fade-in dark:border-white/10 dark:bg-[#171e1a]/98 dark:text-[#f4f2e9]"
+          className="z-[100] min-w-[var(--radix-select-trigger-width)] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] p-1 text-[var(--foreground)] shadow-lg shadow-black/8 data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out data-[state=open]:fade-in motion-reduce:animate-none"
         >
-          <Select.ScrollUpButton className="grid h-7 place-items-center text-slate-400">
+          <Select.ScrollUpButton className="grid h-6 place-items-center text-[var(--muted)]">
             <ChevronUp className="size-3.5" />
           </Select.ScrollUpButton>
-          <Select.Viewport>
+          <Select.Viewport className="max-h-[min(20rem,var(--radix-select-content-available-height))]">
             {options.map((option) => (
               <Select.Item
                 key={option.value}
                 value={option.value}
-                className="relative flex min-h-10 cursor-default select-none items-center rounded-xl py-2 pl-9 pr-3 text-xs font-bold outline-none data-[highlighted]:bg-emerald-100/70 data-[highlighted]:text-emerald-900 data-[state=checked]:text-emerald-800 dark:data-[highlighted]:bg-lime-300/10 dark:data-[highlighted]:text-lime-200 dark:data-[state=checked]:text-lime-300"
+                className="relative flex min-h-9 cursor-default select-none items-center rounded-md py-2 pl-8 pr-3 text-[0.8125rem] font-medium outline-none data-[highlighted]:bg-[var(--accent-soft)] data-[highlighted]:text-[var(--accent)] data-[state=checked]:text-[var(--accent)]"
               >
-                <Select.ItemIndicator className="absolute left-3 grid place-items-center">
+                <Select.ItemIndicator className="absolute left-2.5 grid place-items-center">
                   <Check className="size-3.5" />
                 </Select.ItemIndicator>
                 <div>
                   <Select.ItemText>{option.label}</Select.ItemText>
                   {option.description && (
-                    <p className="mt-0.5 text-[0.62rem] font-medium text-slate-400 dark:text-white/32">
+                    <p className="mt-0.5 text-[0.6875rem] font-normal leading-4 text-[var(--muted)]">
                       {option.description}
                     </p>
                   )}
@@ -85,7 +85,7 @@ export function SelectField({
               </Select.Item>
             ))}
           </Select.Viewport>
-          <Select.ScrollDownButton className="grid h-7 place-items-center text-slate-400">
+          <Select.ScrollDownButton className="grid h-6 place-items-center text-[var(--muted)]">
             <ChevronDown className="size-3.5" />
           </Select.ScrollDownButton>
         </Select.Content>

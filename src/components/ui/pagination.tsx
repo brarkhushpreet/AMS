@@ -39,7 +39,7 @@ export function Pagination({
       aria-label="Attendance pagination"
       className="flex flex-col gap-3 border-t border-black/6 px-4 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-white/7"
     >
-      <p className="text-[0.68rem] font-semibold text-slate-400 dark:text-white/32">
+      <p className="text-[0.68rem] font-semibold text-slate-500 dark:text-white/60">
         Page {currentPage} of {totalPages}
       </p>
       <div className="flex items-center gap-1.5">
@@ -59,10 +59,10 @@ export function Pagination({
               href={href(page)}
               aria-current={page === currentPage ? "page" : undefined}
               className={cn(
-                "grid size-9 place-items-center rounded-xl text-xs font-extrabold",
+                "grid size-9 place-items-center rounded-xl text-xs font-semibold",
                 page === currentPage
-                  ? "bg-[#151a17] text-white dark:bg-[#b5f44b] dark:text-[#172008]"
-                  : "border border-black/8 bg-white/50 text-slate-500 hover:border-black/15 hover:text-slate-900 dark:border-white/8 dark:bg-white/4 dark:text-white/40 dark:hover:border-white/15 dark:hover:text-white",
+                  ? "bg-[#151a17] text-white dark:bg-[var(--accent)] dark:text-[var(--accent-ink)]"
+                  : "border border-black/8 bg-white/50 text-slate-500 hover:border-black/15 hover:text-slate-900 dark:border-white/8 dark:bg-white/4 dark:text-white/60 dark:hover:border-white/15 dark:hover:text-white",
               )}
             >
               {page}
@@ -107,7 +107,7 @@ function PageLink({
     <Link
       href={href}
       aria-label={label}
-      className="grid size-9 place-items-center rounded-xl border border-black/8 bg-white/50 text-slate-500 hover:border-black/15 hover:text-slate-900 dark:border-white/8 dark:bg-white/4 dark:text-white/40 dark:hover:border-white/15 dark:hover:text-white"
+      className="grid size-9 place-items-center rounded-xl border border-black/8 bg-white/50 text-slate-500 hover:border-black/15 hover:text-slate-900 dark:border-white/8 dark:bg-white/4 dark:text-white/60 dark:hover:border-white/15 dark:hover:text-white"
     >
       {children}
     </Link>

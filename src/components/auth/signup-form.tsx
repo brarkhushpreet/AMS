@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/form-controls";
 import { cn } from "@/lib/utils";
 import { notifyAuthCompanion } from "@/components/auth/auth-companion";
+import { companionMood } from "@/lib/companion-state.js";
 
 const initialState: AuthActionState = {};
 
@@ -33,23 +34,13 @@ export function SignupForm() {
   );
 
   useEffect(() => {
-    if (
-      passwordVisible ||
-      confirmationVisible ||
-      passwordTyping ||
-      confirmationTyping
-    ) {
-      notifyAuthCompanion("shy");
-    } else if (state.error) {
-      notifyAuthCompanion("error");
-    } else if (state.success) {
-      notifyAuthCompanion("happy");
-    }
+    notifyAuthCompanion(companionMood({ passwordVisible, confirmationVisible, passwordTyping, confirmationTyping, pending, error: Boolean(state.error), success: Boolean(state.success) }));
   }, [
     confirmationVisible,
     confirmationTyping,
     passwordTyping,
     passwordVisible,
+    pending,
     state.error,
     state.success,
   ]);
@@ -135,10 +126,10 @@ export function SignupForm() {
             <label
               key={option.value}
               className={cn(
-                "flex cursor-pointer items-center gap-2.5 rounded-xl border p-2.5 text-sm font-extrabold",
+                "flex cursor-pointer items-center gap-2.5 rounded-xl border p-2.5 text-sm font-semibold",
                 role === option.value
-                  ? "border-brand-500 bg-blue-50 text-brand-700 shadow-sm"
-                  : "border-slate-200 bg-white text-slate-600 hover:border-slate-300",
+                  ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]"
+                  : "border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] hover:border-[var(--border-strong)]",
               )}
             >
               <input
@@ -152,7 +143,7 @@ export function SignupForm() {
               <span
                 className={cn(
                   "grid size-8 place-items-center rounded-lg",
-                  role === option.value ? "bg-white" : "bg-slate-100",
+                  role === option.value ? "bg-[var(--surface)]" : "bg-[var(--surface-soft)]",
                 )}
               >
                 <option.icon className="size-4.5" />
@@ -252,7 +243,7 @@ export function SignupForm() {
         {pending ? "Creating account…" : `Create ${role.toLowerCase()} account`}
         {!pending && <ArrowRight className="size-4" />}
       </Button>
-      <p className="text-center text-[0.65rem] leading-4 text-slate-400">
+      <p className="text-center text-[0.65rem] leading-4 text-slate-500">
         By continuing, you agree to use classroom and location data responsibly.
       </p>
     </form>
@@ -272,7 +263,7 @@ function PasswordVisibilityButton({
     <button
       type="button"
       onClick={onClick}
-      className="absolute right-1 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-lg text-slate-400 hover:bg-black/5 hover:text-slate-700 dark:text-white/35 dark:hover:bg-white/8 dark:hover:text-white"
+      className="absolute right-1 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-lg text-slate-500 hover:bg-black/5 hover:text-slate-700 dark:text-white/60 dark:hover:bg-white/8 dark:hover:text-white"
       aria-label={visible ? `Hide ${label}` : `Show ${label}`}
       aria-pressed={visible}
     >

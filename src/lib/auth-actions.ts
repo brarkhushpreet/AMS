@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { AuthError } from "next-auth";
 import { signIn, signOut } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { demoEnabled, DEMO_EMAIL_DOMAIN } from "@/lib/demo-policy";
 import {
   loginSchema,
   signupSchema,
@@ -12,6 +13,24 @@ import {
 
 function formValues(formData: FormData) {
   return Object.fromEntries(formData.entries());
+}
+
+export async function demoLoginAction(
+  _state: AuthActionState,
+  formData: FormData,
+): Promise<AuthActionState> {
+  const role = formData.get("role");
+  if (!demoEnabled()) return { error: "Demo access is currently disabled." };
+  if (role !== "TEACHER" && role !== "STUDENT") return { error: "Choose a demo role." };
+  try {
+    await signIn("demo", { role, redirectTo: "/dashboard" });
+  } catch (error) {
+    if (error instanceof AuthError) {
+      return { error: "The demo is temporarily unavailable. Please try again shortly." };
+    }
+    throw error;
+  }
+  return {};
 }
 
 export async function loginAction(
@@ -56,6 +75,9 @@ export async function signupAction(
 
   const values = parsed.data;
   const email = values.email.trim().toLowerCase();
+  if (email.endsWith(`@${DEMO_EMAIL_DOMAIN}`)) {
+    return { error: "This email domain is reserved for demo accounts." };
+  }
 
   const exists = await db.user.findUnique({ where: { email }, select: { id: true } });
   if (exists) return { error: "An account already exists for this email." };

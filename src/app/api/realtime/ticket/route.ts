@@ -43,13 +43,24 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "You do not have access to this session." }, { status: 403 });
   }
 
+  const requestUrl = new URL(request.url);
+  const websocketUrl =
+    process.env.REALTIME_PUBLIC_URL ??
+    `${requestUrl.protocol === "https:" ? "wss:" : "ws:"}//${requestUrl.host}/ws/attendance`;
+
   return NextResponse.json({
+    websocketUrl,
     ticket: createRealtimeTicket({
       userId: profile.id,
       role: profile.role,
       sessionId,
       classroomId: session.classroomId,
       sessionEndsAt: session.endsAt.getTime(),
+      frequencyMinHz: session.frequencyMinHz ?? 17_200,
+      frequencyMaxHz: session.frequencyMaxHz ?? 18_800,
+      frequencyIntervalMs: session.frequencyIntervalMs ?? 1_100,
+      minFrequencyMatches: session.minFrequencyMatches ?? 4,
+      protocolVersion: 2,
     }),
     settings: {
       minHz: session.frequencyMinHz,
@@ -57,6 +68,8 @@ export async function GET(request: Request) {
       intervalMs: session.frequencyIntervalMs,
       matchesRequired: session.minFrequencyMatches,
       endsAt: session.endsAt.toISOString(),
+      protocolVersion: 2,
+      expectedFrequencyDisclosure: false,
     },
   });
 }

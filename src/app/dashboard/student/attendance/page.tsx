@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CalendarCheck2, MapPin, RadioTower, Waves } from "lucide-react";
+import {
+  CalendarCheck2,
+  MapPin,
+  RadioTower,
+  ShieldCheck,
+  Waves,
+} from "lucide-react";
 import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import { requireRole } from "@/lib/current-profile";
@@ -122,7 +128,12 @@ export default async function StudentAttendancePage({
       classroom: { select: { id: true, name: true, subjectCode: true } },
       attendanceRecords: {
         where: { studentId },
-        select: { id: true, verifiedAt: true, confidence: true },
+        select: {
+          id: true,
+          verifiedAt: true,
+          confidence: true,
+          deviceVerified: true,
+        },
       },
     },
     orderBy: { startedAt: "desc" },
@@ -147,23 +158,15 @@ export default async function StudentAttendancePage({
 
   return (
     <div className="space-y-6">
-      <section className="grid gap-6 rounded-[1.75rem] border border-black/8 bg-[#151a17] p-6 text-white shadow-soft sm:p-8 lg:grid-cols-[1fr_auto] lg:items-end dark:border-white/8 dark:bg-[#151b18]">
+      <section className="border-b border-[var(--border)] pb-6">
         <div>
-          <p className="editorial-label text-cyan-300">Personal archive</p>
-          <h2 className="mt-3 text-3xl font-black tracking-[-0.05em] sm:text-4xl">
+          <p className="text-sm text-[var(--muted)]">Personal archive</p>
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight">
             Every class. Every check-in.
           </h2>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-white/45">
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--muted)]">
             A transparent, searchable record of where you were present and how
             each check-in was verified.
-          </p>
-        </div>
-        <div className="rounded-2xl border border-white/10 bg-white/[0.055] px-5 py-4">
-          <p className="font-mono text-3xl font-black text-cyan-300">
-            {attendanceRate(attended, summarySessions.length)}%
-          </p>
-          <p className="mt-1 text-[0.6rem] font-bold tracking-[0.13em] text-white/35 uppercase">
-            overall presence
           </p>
         </div>
       </section>
@@ -191,18 +194,18 @@ export default async function StudentAttendancePage({
         resultCount={totalResults}
       />
 
-      <section className="overflow-hidden rounded-[1.5rem] border border-black/8 bg-[#fbfaf5] shadow-card dark:border-white/8 dark:bg-[#151b18]">
+      <section className="overflow-hidden rounded-xl border border-black/8 bg-[var(--surface)] shadow-card dark:border-white/8 dark:bg-[var(--surface)]">
         <div className="flex items-center justify-between border-b border-black/6 px-5 py-4 dark:border-white/7">
           <div>
-            <h3 className="font-black text-slate-950 dark:text-white">Attendance results</h3>
-            <p className="mt-1 text-[0.68rem] font-semibold text-slate-400 dark:text-white/30">
+            <h3 className="font-semibold text-slate-950 dark:text-white">Attendance results</h3>
+            <p className="mt-1 text-[0.68rem] font-semibold text-slate-500 dark:text-white/60">
               Showing {sessions.length} of {totalResults}
             </p>
           </div>
           <StatusPill tone="neutral">Newest first</StatusPill>
         </div>
         {sessions.length === 0 ? (
-          <p className="p-12 text-center text-sm font-semibold text-slate-400">
+          <p className="p-12 text-center text-sm font-semibold text-slate-500">
             No attendance records match the selected filters.
           </p>
         ) : (
@@ -211,24 +214,38 @@ export default async function StudentAttendancePage({
               const record = session.attendanceRecords[0];
               const active = session.status === "ACTIVE" && session.endsAt > now;
               return (
-                <div key={session.id} className="flex flex-wrap items-center gap-4 px-5 py-4 hover:bg-emerald-100/20 dark:hover:bg-lime-300/[0.035]">
+                <div key={session.id} className="flex flex-wrap items-center gap-4 px-5 py-4 hover:bg-emerald-100/20 dark:hover:bg-blue-300/[0.035]">
                   <span className={cn("grid size-10 place-items-center rounded-xl", session.method === "GEOLOCATION" ? "bg-cyan-300/18 text-cyan-800 dark:text-cyan-300" : "bg-violet-300/18 text-violet-800 dark:text-violet-300")}>
                     {session.method === "GEOLOCATION" ? <MapPin className="size-4" /> : <Waves className="size-4" />}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <Link href={`/dashboard/student/classes/${session.classroom.id}`} className="truncate text-sm font-extrabold text-slate-800 hover:text-emerald-700 dark:text-white/80 dark:hover:text-lime-300">
+                    <Link href={`/dashboard/student/classes/${session.classroom.id}`} className="truncate text-sm font-semibold text-slate-800 hover:text-emerald-700 dark:text-white/80 dark:hover:text-lime-300">
                       {session.classroom.name}
                     </Link>
-                    <p className="mt-0.5 text-[0.68rem] font-semibold text-slate-400 dark:text-white/28">
+                    <p className="mt-0.5 text-[0.68rem] font-semibold text-slate-500 dark:text-white/60">
                       {session.classroom.subjectCode} · {formatDate(session.startedAt)} · {formatMethod(session.method)}
                     </p>
                   </div>
                   {active && !record ? (
-                    <Link href={`/dashboard/student/sessions/${session.id}`} className="rounded-full bg-[#151a17] px-3 py-2 text-[0.68rem] font-extrabold text-white hover:-translate-y-0.5 dark:bg-[#b5f44b] dark:text-[#172008]">
+                    <Link href={`/dashboard/student/sessions/${session.id}`} className="rounded-full bg-[#151a17] px-3 py-2 text-[0.68rem] font-semibold text-white  dark:bg-[var(--accent)] dark:text-[var(--accent-ink)]">
                       Check in now
                     </Link>
                   ) : (
-                    <StatusPill tone={record ? "green" : "red"}>{record ? "PRESENT" : "ABSENT"}</StatusPill>
+                    <div className="flex items-center gap-2">
+                      <StatusPill tone={record ? "green" : "red"}>{record ? "PRESENT" : "ABSENT"}</StatusPill>
+                      {record?.deviceVerified ? (
+                        <StatusPill tone="violet">
+                          Passkey-confirmed
+                        </StatusPill>
+                      ) : null}
+                      <Link
+                        href={`/dashboard/sessions/${session.id}/receipt`}
+                        aria-label="Open verified attendance receipt"
+                        className="grid size-8 place-items-center rounded-xl border border-black/8 text-emerald-700 hover:bg-emerald-50 dark:border-white/8 dark:text-blue-300 dark:hover:bg-blue-300/8"
+                      >
+                        <ShieldCheck className="size-3.5" />
+                      </Link>
+                    </div>
                   )}
                 </div>
               );

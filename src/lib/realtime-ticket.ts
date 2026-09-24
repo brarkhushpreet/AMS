@@ -6,6 +6,11 @@ export type RealtimeTicket = {
   classroomId: string;
   role: "STUDENT" | "TEACHER";
   sessionEndsAt: number;
+  frequencyMinHz: number;
+  frequencyMaxHz: number;
+  frequencyIntervalMs: number;
+  minFrequencyMatches: number;
+  protocolVersion: 2;
   exp: number;
 };
 

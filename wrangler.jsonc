@@ -1,0 +1,30 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "classpulse",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-09-23",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "routes": [
+    {
+      "pattern": "classpulse.khushpreet.dev",
+      "custom_domain": true
+    }
+  ],
+  "vars": {
+    "AUTH_TRUST_HOST": "true",
+    "AUTH_URL": "https://classpulse.khushpreet.dev",
+    "NEXT_PUBLIC_APP_URL": "https://classpulse.khushpreet.dev",
+    "REALTIME_PUBLIC_URL": "wss://classpulse-realtime.khushpreet.dev/ws/attendance",
+    "WEBAUTHN_RP_ID": "classpulse.khushpreet.dev",
+    "WEBAUTHN_ORIGIN": "https://classpulse.khushpreet.dev",
+    "DEMO_MODE": "true"
+  },
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true
+  }
+}

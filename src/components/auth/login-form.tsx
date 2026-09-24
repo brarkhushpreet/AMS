@@ -8,6 +8,7 @@ import type { AuthActionState } from "@/lib/validation";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/form-controls";
 import { notifyAuthCompanion } from "@/components/auth/auth-companion";
+import { companionMood } from "@/lib/companion-state.js";
 
 const initialState: AuthActionState = {};
 
@@ -18,14 +19,8 @@ export function LoginForm() {
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (passwordVisible || passwordTyping) {
-      notifyAuthCompanion("shy");
-    } else if (state.error) {
-      notifyAuthCompanion("error");
-    } else {
-      notifyAuthCompanion("curious");
-    }
-  }, [passwordTyping, passwordVisible, state.error]);
+    notifyAuthCompanion(companionMood({ passwordVisible, passwordTyping, pending, error: Boolean(state.error) }));
+  }, [passwordTyping, passwordVisible, pending, state.error]);
 
   useEffect(() => {
     if (state.error) {
@@ -65,7 +60,7 @@ export function LoginForm() {
       <div>
         <Label htmlFor="email">Email address</Label>
         <div className="relative">
-          <Mail className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+          <Mail className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
           <Input
             id="email"
             name="email"
@@ -85,12 +80,12 @@ export function LoginForm() {
       <div>
         <div className="flex items-center justify-between">
           <Label htmlFor="password">Password</Label>
-          <span className="mb-2 text-xs font-semibold text-slate-400">
+          <span className="mb-2 text-xs font-semibold text-slate-500">
             8+ characters
           </span>
         </div>
         <div className="relative">
-          <LockKeyhole className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+          <LockKeyhole className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
           <Input
             id="password"
             name="password"
@@ -104,7 +99,7 @@ export function LoginForm() {
           <button
             type="button"
             onClick={togglePasswordVisibility}
-            className="absolute right-1.5 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-lg text-slate-400 hover:bg-black/5 hover:text-slate-700 dark:text-white/35 dark:hover:bg-white/8 dark:hover:text-white"
+            className="absolute right-1.5 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-lg text-slate-500 hover:bg-black/5 hover:text-slate-700 dark:text-white/60 dark:hover:bg-white/8 dark:hover:text-white"
             aria-label={passwordVisible ? "Hide password" : "Show password"}
             aria-pressed={passwordVisible}
           >

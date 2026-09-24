@@ -16,10 +16,10 @@ export function Label({
   return (
     <label
       htmlFor={htmlFor}
-      className="mb-2 flex items-center justify-between text-xs font-bold tracking-wide text-slate-700 dark:text-white/65"
+      className="mb-2 flex items-center justify-between text-xs font-medium text-[var(--foreground)]"
     >
       <span>{children}</span>
-      {hint && <span className="text-xs font-medium text-slate-400">{hint}</span>}
+      {hint && <span className="text-xs font-medium text-slate-500">{hint}</span>}
     </label>
   );
 }
@@ -31,7 +31,7 @@ export function Input({
   return (
     <input
       className={cn(
-        "h-12 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-950 shadow-sm transition-all placeholder:text-slate-400 hover:border-slate-300 focus:border-emerald-500 focus:shadow-[0_0_0_4px_rgba(16,185,129,.09)] dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-white/25 dark:hover:border-white/18",
+        "h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-[var(--foreground)] transition-colors placeholder:text-[var(--muted)] hover:border-[var(--border-strong)] focus:border-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-60",
         className,
       )}
       {...props}
@@ -46,7 +46,7 @@ export function Textarea({
   return (
     <textarea
       className={cn(
-        "min-h-24 w-full resize-y rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-950 shadow-sm placeholder:text-slate-400 hover:border-slate-300 focus:border-emerald-500 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-white/25 dark:hover:border-white/18",
+        "min-h-24 w-full resize-y rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-sm text-[var(--foreground)] placeholder:text-[var(--muted)] hover:border-[var(--border-strong)] focus:border-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-60",
         className,
       )}
       {...props}

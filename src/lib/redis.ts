@@ -50,13 +50,19 @@ export async function cacheJson<T>(
 ): Promise<T> {
   const redis = await getRedis();
   if (redis) {
-    const cached = await redis.get(key);
-    if (cached) return JSON.parse(cached) as T;
+    try {
+      const cached = await redis.get(key);
+      if (cached) return JSON.parse(cached) as T;
+    } catch {
+      // Continue through the database loader if Redis drops mid-request.
+    }
   }
 
   const value = await loader();
   if (redis) {
-    await redis.set(key, JSON.stringify(value), { EX: ttlSeconds });
+    await redis
+      .set(key, JSON.stringify(value), { EX: ttlSeconds })
+      .catch(() => undefined);
   }
   return value;
 }
@@ -65,12 +71,19 @@ export async function invalidateCache(...patterns: string[]) {
   const redis = await getRedis();
   if (!redis) return;
 
-  for (const pattern of patterns) {
-    let cursor = "0";
-    do {
-      const result = await redis.scan(cursor, { MATCH: pattern, COUNT: 100 });
-      cursor = result.cursor;
-      if (result.keys.length > 0) await redis.del(result.keys);
-    } while (cursor !== "0");
+  try {
+    for (const pattern of patterns) {
+      let cursor = "0";
+      do {
+        const result = await redis.scan(cursor, {
+          MATCH: pattern,
+          COUNT: 100,
+        });
+        cursor = result.cursor;
+        if (result.keys.length > 0) await redis.del(result.keys);
+      } while (cursor !== "0");
+    }
+  } catch {
+    // Cache invalidation is best-effort; short TTLs remain the fallback.
   }
 }

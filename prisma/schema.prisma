@@ -8,29 +8,34 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  role      Role     @default(STUDENT)
-  name      String
-  student   Student?
-  teacher   Teacher?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                        String                @id @default(uuid())
+  email                     String                @unique
+  password                  String
+  role                      Role                  @default(STUDENT)
+  name                      String
+  attendancePasskeyRequired Boolean               @default(false)
+  student                   Student?
+  teacher                   Teacher?
+  passkeys                  PasskeyCredential[]
+  passkeyRecoveryCodes      PasskeyRecoveryCode[]
+  webAuthnCeremonies        WebAuthnCeremony[]
+  createdAt                 DateTime              @default(now())
+  updatedAt                 DateTime              @updatedAt
 }
 
 model Student {
-  id                 String             @id @default(uuid())
-  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId             String             @unique
+  id                 String                 @id @default(uuid())
+  user               User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId             String                 @unique
   department         String?
   className          String?
   batch              String?
-  registrationNumber String             @unique
+  registrationNumber String                 @unique
   enrollments        Enrollment[]
   attendanceRecords  AttendanceRecord[]
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
+  presenceProofs     PresenceVerification[]
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
 }
 
 model Teacher {
@@ -44,19 +49,19 @@ model Teacher {
 }
 
 model Classroom {
-  id                 String              @id @default(uuid())
+  id                 String                @id @default(uuid())
   name               String
   subjectCode        String
-  joinCode           String              @unique
+  joinCode           String                @unique
   section            String?
   academicTerm       String
-  teacher            Teacher             @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  teacher            Teacher               @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   teacherId          String
   enrollments        Enrollment[]
   invitations        ClassroomInvitation[]
   attendanceSessions AttendanceSession[]
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
 
   @@unique([teacherId, subjectCode, academicTerm])
   @@index([teacherId])
@@ -110,6 +115,9 @@ model AttendanceSession {
   frequencyIntervalMs Int?
   minFrequencyMatches Int?
   attendanceRecords   AttendanceRecord[]
+  presenceProofs      PresenceVerification[]
+  auditEvents         AttendanceAuditEvent[]
+  report              AttendanceReport?
   createdAt           DateTime                @default(now())
   updatedAt           DateTime                @updatedAt
 
@@ -118,7 +126,7 @@ model AttendanceSession {
 }
 
 model AttendanceRecord {
-  id             String           @id @default(uuid())
+  id             String            @id @default(uuid())
   session        AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   sessionId      String
   student        Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
@@ -127,6 +135,8 @@ model AttendanceRecord {
   method         AttendanceMethod
   confidence     Float?
   distanceMeters Float?
+  deviceVerified Boolean           @default(false)
+  proofHash      String?
   evidence       Json?
   verifiedAt     DateTime          @default(now())
   createdAt      DateTime          @default(now())
@@ -134,6 +144,102 @@ model AttendanceRecord {
 
   @@unique([sessionId, studentId])
   @@index([studentId, verifiedAt])
+}
+
+model PasskeyCredential {
+  id         String                 @id
+  user       User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  name       String
+  publicKey  Bytes
+  counter    BigInt                 @default(0)
+  transports String[]
+  deviceType String
+  backedUp   Boolean                @default(false)
+  lastUsedAt DateTime?
+  proofs     PresenceVerification[]
+  createdAt  DateTime               @default(now())
+  updatedAt  DateTime               @updatedAt
+
+  @@index([userId])
+}
+
+model WebAuthnCeremony {
+  id           String               @id @default(uuid())
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String
+  type         WebAuthnCeremonyType
+  challenge    String               @unique
+  authorizedAt DateTime?
+  expiresAt    DateTime
+  createdAt    DateTime             @default(now())
+
+  @@index([userId, type, expiresAt])
+}
+
+model PasskeyRecoveryCode {
+  id        String    @id @default(uuid())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  codeHash  String    @unique
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, usedAt])
+}
+
+model PresenceVerification {
+  id                String                     @id @default(uuid())
+  session           AttendanceSession          @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId         String
+  student           Student                    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId         String
+  method            AttendanceMethod
+  status            PresenceVerificationStatus @default(PENDING_DEVICE)
+  proofHash         String
+  confidence        Float
+  distanceMeters    Float?
+  evidence          Json
+  webAuthnChallenge String?
+  credential        PasskeyCredential?         @relation(fields: [credentialId], references: [id], onDelete: SetNull)
+  credentialId      String?
+  expiresAt         DateTime
+  verifiedAt        DateTime?
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+
+  @@unique([sessionId, studentId])
+  @@index([studentId, status, expiresAt])
+}
+
+model AttendanceAuditEvent {
+  id           String                   @id @default(uuid())
+  session      AttendanceSession        @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId    String
+  sequence     Int
+  type         AttendanceAuditEventType
+  actorId      String?
+  payload      Json
+  previousHash String
+  eventHash    String                   @unique
+  createdAt    DateTime                 @default(now())
+
+  @@unique([sessionId, sequence])
+  @@index([sessionId, createdAt])
+}
+
+model AttendanceReport {
+  id          String            @id @default(uuid())
+  session     AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId   String            @unique
+  eventCount  Int
+  recordCount Int
+  headHash    String
+  payloadHash String
+  signature   String
+  publicKey   String
+  algorithm   String            @default("Ed25519")
+  generatedAt DateTime          @default(now())
 }
 
 enum Role {
@@ -162,4 +268,26 @@ enum InvitationStatus {
   PENDING
   ACCEPTED
   EXPIRED
+}
+
+enum WebAuthnCeremonyType {
+  REGISTRATION
+  MANAGEMENT
+}
+
+enum PresenceVerificationStatus {
+  PENDING_DEVICE
+  VERIFIED
+  REJECTED
+  EXPIRED
+}
+
+enum AttendanceAuditEventType {
+  SESSION_STARTED
+  CHALLENGE_COMMITTED
+  PROOF_ACCEPTED
+  DEVICE_VERIFIED
+  ATTENDANCE_RECORDED
+  SESSION_CLOSED
+  REPORT_SIGNED
 }
