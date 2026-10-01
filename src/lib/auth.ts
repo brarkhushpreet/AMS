@@ -4,7 +4,6 @@ import bcrypt from "bcryptjs";
 import authConfig from "@/lib/auth.config";
 import { db } from "@/lib/db";
 import { loginSchema } from "@/lib/validation";
-import { ensureDemoAccounts } from "@/lib/demo-accounts";
 import {
   demoEnabled,
   DEMO_EMAIL_DOMAIN,
@@ -41,7 +40,6 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       credentials: { role: { label: "Demo role", type: "text" } },
       async authorize(credentials) {
         if (!demoEnabled() || (credentials.role !== "TEACHER" && credentials.role !== "STUDENT")) return null;
-        await ensureDemoAccounts();
         const id = credentials.role === "TEACHER" ? DEMO_TEACHER_ID : DEMO_STUDENT_ID;
         const user = await db.user.findUnique({
           where: { id },

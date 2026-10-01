@@ -41,7 +41,7 @@ npm run test:demo
    npm run db:deploy
    ```
 
-5. Do not run `prisma migrate dev`, `prisma db push`, or `npm run db:seed` against production. Demo accounts create their isolated fictional records on first login.
+5. Do not run `prisma migrate dev`, `prisma db push`, or `npm run db:seed` against production. Instead, paste and run the complete [demo-neon-seed.sql](demo-neon-seed.sql) file in this database's Neon SQL Editor. It is idempotent and must finish before testing the demo buttons.
 
 ## 3. Generate production secrets
 

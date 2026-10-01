@@ -26,7 +26,7 @@ export async function demoLoginAction(
     await signIn("demo", { role, redirectTo: "/dashboard" });
   } catch (error) {
     if (error instanceof AuthError) {
-      return { error: "The demo is temporarily unavailable. Please try again shortly." };
+      return { error: "Demo login is unavailable. Check that the Neon demo seed has been applied." };
     }
     throw error;
   }
