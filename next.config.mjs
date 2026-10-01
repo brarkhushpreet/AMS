@@ -15,6 +15,15 @@ const nextConfig = {
       "./node_modules/pg-cloudflare/esm/**",
     ],
   },
+  outputFileTracingExcludes: {
+    "**/*": [
+      "./node_modules/prisma/**",
+      "./node_modules/@prisma/dev/**",
+      "./node_modules/@prisma/engines/**",
+      "./node_modules/@prisma/studio-core/**",
+      "./node_modules/@electric-sql/pglite/**",
+    ],
+  },
 };
 
 export default nextConfig;

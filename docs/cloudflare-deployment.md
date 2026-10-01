@@ -187,7 +187,7 @@ Follow the build log until the deployment succeeds. Then open:
 https://classpulse.khushpreet.dev
 ```
 
-If the free Workers plan rejects the compressed bundle because it exceeds the plan limit, upgrade Workers; do not remove authentication, WebAuthn, attendance verification, or Prisma code merely to make the bundle smaller.
+Cloudflare limits Workers to 64 MiB uncompressed on both free and paid plans. If a deploy exceeds that limit, inspect the largest uploaded files and exclude build-only assets from server traces; upgrading the plan does not increase the size limit.
 
 ## 8. CI/CD behavior after setup
 
