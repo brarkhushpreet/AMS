@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireProfile } from "@/lib/current-profile";
 import { attendanceSessionSchema } from "@/lib/validation";
+import { locationAccuracyLimit } from "@/lib/browser-location";
 import { invalidateCache } from "@/lib/redis";
 import {
   appendAttendanceEventTx,
@@ -27,12 +28,20 @@ export async function POST(request: Request) {
     values.method === "GEOLOCATION" &&
     (values.latitude === undefined ||
       values.longitude === undefined ||
+      values.locationAccuracyMeters === undefined ||
       values.radiusMeters === undefined)
   ) {
     return NextResponse.json(
       { error: "Location and room radius are required." },
       { status: 400 },
     );
+  }
+  if (values.method === "GEOLOCATION" && values.locationAccuracyMeters! > locationAccuracyLimit(values.radiusMeters!)) {
+    console.warn("[presence:location] room center rejected", {
+      accuracyMeters: Math.round(values.locationAccuracyMeters!),
+      requiredAccuracyMeters: Math.round(locationAccuracyLimit(values.radiusMeters!)),
+    });
+    return NextResponse.json({ error: "The room center is not accurate enough for this radius. Use ultrasound attendance instead." }, { status: 422 });
   }
 
   const classroom = await db.classroom.findFirst({
@@ -88,6 +97,13 @@ export async function POST(request: Request) {
         method: values.method,
         durationMinutes: values.durationMinutes,
         protocolVersion: 2,
+        locationPolicy:
+          values.method === "GEOLOCATION"
+            ? {
+                centerAccuracyMeters: Math.round(values.locationAccuracyMeters!),
+                radiusMeters: values.radiusMeters,
+              }
+            : null,
         acousticPolicy:
           values.method === "ULTRASOUND"
             ? {
@@ -115,6 +131,12 @@ export async function POST(request: Request) {
     `dashboard:teacher:${profile.teacher.id}`,
     "dashboard:student:*",
   );
+  if (values.method === "GEOLOCATION") {
+    console.info("[presence:location] room center accepted", {
+      accuracyMeters: Math.round(values.locationAccuracyMeters!),
+      radiusMeters: values.radiusMeters,
+    });
+  }
   return NextResponse.json(
     { session: result.session },
     { status: 201 },

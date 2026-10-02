@@ -51,6 +51,7 @@ export const attendanceSessionSchema = z.object({
   durationMinutes: z.number().int().min(1).max(30).default(5),
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
+  locationAccuracyMeters: z.number().min(0).max(10_000).optional(),
   radiusMeters: z.number().int().min(10).max(500).optional(),
 });
 

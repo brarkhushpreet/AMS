@@ -19,6 +19,7 @@ import { Input, Label } from "@/components/ui/form-controls";
 import { SelectField } from "@/components/ui/select-field";
 import { StatusPill } from "@/components/ui/status-pill";
 import { PresenceVisualizer } from "@/components/attendance/presence-visualizer";
+import { getPreciseLocation, locationAccuracyLimit } from "@/lib/browser-location";
 import { cn, formatMethod } from "@/lib/utils";
 
 type ActiveSession = {
@@ -47,16 +48,12 @@ export function SessionControl({
 
     if (method === "GEOLOCATION") {
       try {
-        coordinates = await new Promise<GeolocationCoordinates>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(
-            (position) => resolve(position.coords),
-            reject,
-            { enableHighAccuracy: true, timeout: 12_000, maximumAge: 0 },
-          );
-        });
-      } catch {
+        coordinates = (await getPreciseLocation(
+          locationAccuracyLimit(Number(formData.get("radiusMeters"))),
+        )).coords;
+      } catch (error) {
         setPending(false);
-        const message = "Allow precise location access to set the classroom center.";
+        const message = error instanceof Error ? error.message : "Location is unavailable. Use ultrasound attendance.";
         setError(message);
         toast.error("Location permission needed", { description: message });
         return;
@@ -73,6 +70,7 @@ export function SessionControl({
         durationMinutes: Number(formData.get("durationMinutes")),
         latitude: coordinates?.latitude,
         longitude: coordinates?.longitude,
+        locationAccuracyMeters: coordinates?.accuracy,
         radiusMeters:
           method === "GEOLOCATION" ? Number(formData.get("radiusMeters")) : undefined,
       }),
@@ -309,6 +307,10 @@ function LiveSessionCard({
       const audio = new AudioContextClass();
       audioRef.current = audio;
       await audio.resume();
+      console.info("[presence:acoustic] teacher audio ready", {
+        sampleRate: audio.sampleRate,
+        state: audio.state,
+      });
 
       const socket = new WebSocket(payload.websocketUrl);
       socketRef.current = socket;
@@ -345,6 +347,11 @@ function LiveSessionCard({
         if (message.type !== "frequency") return;
         setSignalError("");
         setFrequency(message.frequency);
+        console.info("[presence:acoustic] room tone scheduled", {
+          leadMs: message.emittedAt - (Date.now() + clockOffsetRef.current),
+          durationMs: message.durationMs,
+          sampleRate: audio.sampleRate,
+        });
 
         const oscillator = audio.createOscillator();
         const gain = audio.createGain();

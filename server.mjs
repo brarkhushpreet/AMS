@@ -306,14 +306,16 @@ async function emitChallenge(sessionId) {
   if (!channel.hasLocalTeacher) return;
   if (!(await ownsSessionLeadership(sessionId))) return;
 
+  // Neon audit writes and two WebSocket deliveries must complete before audio plays.
   const emittedAt =
-    Math.ceil((Date.now() + 240) / channel.intervalMs) *
+    Math.ceil((Date.now() + 3_000) / channel.intervalMs) *
     channel.intervalMs;
   const slot = Math.floor(emittedAt / channel.intervalMs);
   if (slot === channel.lastSlot) return;
 
   channel.lastSlot = slot;
   const challenge = buildChallenge(sessionId, channel, emittedAt);
+  const commitStartedAt = Date.now();
   const committed = await appendAuditEventPg({
     sessionId,
     type: "CHALLENGE_COMMITTED",
@@ -324,9 +326,25 @@ async function emitChallenge(sessionId) {
       durationMs: challenge.durationMs,
     },
   });
-  if (!committed || emittedAt <= Date.now()) return;
+  if (!committed || emittedAt <= Date.now() + 300) {
+    console.warn("[presence:acoustic] challenge not broadcast", {
+      reason: committed ? "audit_write_too_slow" : "audit_write_failed_or_session_closed",
+      auditWriteMs: Date.now() - commitStartedAt,
+      remainingLeadMs: emittedAt - Date.now(),
+    });
+    return;
+  }
+  // Publish near playback, not when the future slot is committed. The student
+  // detector tracks one active window and must not discard a queued one.
+  await new Promise((resolve) => setTimeout(resolve, Math.max(0, emittedAt - Date.now() - 900)));
+  if (!channels.has(sessionId) || !channel.hasLocalTeacher) return;
+  if (redis && !(await ownsSessionLeadership(sessionId))) return;
+  if (emittedAt <= Date.now() + 250) {
+    console.warn("[presence:acoustic] challenge not broadcast", { reason: "publish_too_late", remainingLeadMs: emittedAt - Date.now() });
+    return;
+  }
   if (redis) {
-    await redis.eval(PUBLISH_CHALLENGE, {
+    const published = await redis.eval(PUBLISH_CHALLENGE, {
       keys: [
         `attendance:leader:${sessionId}`,
         `attendance:slot:${sessionId}:${slot}`,
@@ -334,6 +352,7 @@ async function emitChallenge(sessionId) {
       ],
       arguments: [instanceId, "90000", JSON.stringify(challenge), `attendance:live:${sessionId}`],
     });
+    if (published !== 1) console.warn("[presence:acoustic] challenge publish skipped", { reason: "lease_or_duplicate_slot" });
   } else if (!process.env.REDIS_URL) {
     broadcastChallenge(sessionId, challenge);
   }
@@ -369,6 +388,12 @@ function joinChannel(ticket, socket) {
   channel.hasLocalTeacher = [...channel.clients.values()].some(
     (client) => client.role === "TEACHER",
   );
+  console.info("[presence:acoustic] subscriber connected", {
+    role: ticket.role,
+    hasTeacher: channel.hasLocalTeacher,
+    redisConfigured: Boolean(process.env.REDIS_URL),
+    redisReady: Boolean(redis?.isReady && redisSubscriber?.isReady),
+  });
   if (redis) {
     void ensureRedisSubscription(ticket.sessionId).catch(() => undefined);
   }

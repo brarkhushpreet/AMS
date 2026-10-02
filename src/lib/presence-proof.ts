@@ -1,6 +1,8 @@
 import { canonicalJson, sha256Hex } from "@/lib/audit-core.js";
 import { getRedis } from "@/lib/redis";
+import { db } from "@/lib/db";
 import {
+  buildAcousticChallenge,
   computeChallengeCommitment,
   verifyAcousticChallenge,
 } from "@/lib/presence-core.js";
@@ -46,7 +48,12 @@ export function verifyChallengeCommitment(challenge: AcousticChallenge) {
 }
 
 export async function loadAcousticChallenge(
-  sessionId: string,
+  session: {
+    id: string;
+    frequencyMinHz: number | null;
+    frequencyMaxHz: number | null;
+    frequencyIntervalMs: number | null;
+  },
   challengeId: string,
 ) {
   const redis = await getRedis();
@@ -54,7 +61,7 @@ export async function loadAcousticChallenge(
   if (redis?.isReady) {
     try {
       cached = await redis.get(
-        `attendance:challenge:${sessionId}:${challengeId}`,
+        `attendance:challenge:${session.id}:${challengeId}`,
       );
     } catch {
       // The custom server also keeps a bounded same-process fallback.
@@ -63,10 +70,38 @@ export async function loadAcousticChallenge(
   const challenge = cached
     ? (JSON.parse(cached) as AcousticChallenge)
     : globalThis.__classpulseChallenges
-        ?.get(sessionId)
+        ?.get(session.id)
         ?.find((item) => item.id === challengeId) ?? null;
-  if (!challenge || !verifyChallengeCommitment(challenge)) return null;
-  return challenge;
+  if (challenge && verifyChallengeCommitment(challenge)) return challenge;
+
+  // Cloudflare and the standalone WebSocket service do not share memory. The
+  // committed audit event is the durable fallback when Redis is not configured.
+  const committed = await db.attendanceAuditEvent.findFirst({
+    where: {
+      sessionId: session.id,
+      type: "CHALLENGE_COMMITTED",
+      createdAt: { gte: new Date(Date.now() - 90_000) },
+      payload: { path: ["challengeId"], equals: challengeId },
+    },
+    select: { payload: true },
+  });
+  const payload = committed?.payload;
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return null;
+  const { emittedAt, durationMs, commitment } = payload;
+  if (typeof emittedAt !== "number" || typeof durationMs !== "number" || typeof commitment !== "string") return null;
+  const reconstructed = buildAcousticChallenge({
+    sessionId: session.id,
+    emittedAt,
+    minHz: session.frequencyMinHz ?? 17_200,
+    maxHz: session.frequencyMaxHz ?? 18_800,
+    intervalMs: session.frequencyIntervalMs ?? 1_100,
+    secret: proofSecret(),
+  });
+  if (reconstructed.id !== challengeId || reconstructed.durationMs !== durationMs || reconstructed.commitment !== commitment) {
+    console.warn("[presence:acoustic] committed challenge could not be verified; check proof-secret parity between services");
+    return null;
+  }
+  return reconstructed;
 }
 
 export function scoreAcousticProofs(

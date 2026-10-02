@@ -16,11 +16,13 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PresenceVisualizer } from "@/components/attendance/presence-visualizer";
+import { getPreciseLocation, locationAccuracyLimit } from "@/lib/browser-location";
 import { cn, formatMethod } from "@/lib/utils";
 
 type Session = {
   id: string;
   method: "GEOLOCATION" | "ULTRASOUND";
+  radiusMeters?: number | null;
   endsAt: string;
   classroom: {
     name: string;
@@ -72,6 +74,8 @@ export function StudentCheckin({ session }: { session: Session }) {
   const completedRef = useRef(false);
   const clockOffsetRef = useRef(0);
   const captureTimeoutRef = useRef<number | null>(null);
+  const challengeWindowsRef = useRef(0);
+  const weakWindowsRef = useRef(0);
 
   function cleanup() {
     if (captureTimeoutRef.current) window.clearTimeout(captureTimeoutRef.current);
@@ -88,6 +92,23 @@ export function StudentCheckin({ session }: { session: Session }) {
   }
 
   useEffect(() => cleanup, []);
+
+  function armCaptureTimeout(milliseconds: number) {
+    if (captureTimeoutRef.current) window.clearTimeout(captureTimeoutRef.current);
+    captureTimeoutRef.current = window.setTimeout(() => {
+      if (completedRef.current || submittingRef.current) return;
+      console.warn("[presence:acoustic] capture timed out", {
+        windowsReceived: challengeWindowsRef.current,
+        weakWindows: weakWindowsRef.current,
+        captured: proofsRef.current.length,
+      });
+      cleanup();
+      setState("idle");
+      setMessage(challengeWindowsRef.current === 0
+        ? "No classroom signal arrived. Ask the teacher to start the room signal and check the realtime connection."
+        : "The microphone could not clearly detect enough tones. Try Equipment check, move closer to the speaker, or use a device that supports this frequency band.");
+    }, milliseconds);
+  }
 
   async function submitEvidence(payload: Record<string, unknown>) {
     if (submittingRef.current) return;
@@ -156,14 +177,8 @@ export function StudentCheckin({ session }: { session: Session }) {
     setState("working");
     setMessage("Getting a fresh high-accuracy location…");
     try {
-      const position = await new Promise<GeolocationPosition>(
-        (resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: true,
-            timeout: 15_000,
-            maximumAge: 0,
-          });
-        },
+      const position = await getPreciseLocation(
+        locationAccuracyLimit(session.radiusMeters ?? 40),
       );
       setMessage("Verifying your distance from the classroom…");
       await submitEvidence({
@@ -185,11 +200,20 @@ export function StudentCheckin({ session }: { session: Session }) {
   function finishChallengeWindow(captureTarget: number) {
     const window = activeWindowRef.current;
     activeWindowRef.current = null;
+    challengeTimerRef.current = null;
+    if (!window) return;
     if (
-      !window?.best ||
+      !window.best ||
       window.best.signalToNoiseDb < 4.5 ||
       window.best.amplitude < 0.00035
     ) {
+      weakWindowsRef.current += 1;
+      console.info("[presence:acoustic] window had no usable tone", {
+        windowsReceived: challengeWindowsRef.current,
+        weakWindows: weakWindowsRef.current,
+        bestSignalDb: window.best?.signalToNoiseDb ?? null,
+        bestAmplitude: window.best?.amplitude ?? null,
+      });
       setMessage(
         "A challenge passed without a clear signal. Keep the microphone near the room speaker…",
       );
@@ -206,6 +230,12 @@ export function StudentCheckin({ session }: { session: Session }) {
     const captured = proofsRef.current.length;
     setProgress(captured);
     setSignalQuality(window.best.signalToNoiseDb);
+    console.info("[presence:acoustic] tone captured", {
+      captured,
+      required: captureTarget,
+      signalDb: Math.round(window.best.signalToNoiseDb * 10) / 10,
+      amplitude: window.best.amplitude,
+    });
     setMessage(
       captured >= captureTarget
         ? "Hidden sequence captured. Verifying it with the server…"
@@ -237,6 +267,8 @@ export function StudentCheckin({ session }: { session: Session }) {
     proofsRef.current = [];
     submittingRef.current = false;
     completedRef.current = false;
+    challengeWindowsRef.current = 0;
+    weakWindowsRef.current = 0;
 
     try {
       const ticketResponse = await fetch(`/api/realtime/ticket?sessionId=${session.id}`);
@@ -257,6 +289,13 @@ export function StudentCheckin({ session }: { session: Session }) {
       const audio = new AudioContext();
       audioRef.current = audio;
       await audio.resume();
+      console.info("[presence:acoustic] student microphone ready", {
+        sampleRate: audio.sampleRate,
+        state: audio.state,
+        inputSampleRate: stream.getAudioTracks()[0]?.getSettings().sampleRate ?? null,
+        echoCancellation: stream.getAudioTracks()[0]?.getSettings().echoCancellation ?? null,
+        noiseSuppression: stream.getAudioTracks()[0]?.getSettings().noiseSuppression ?? null,
+      });
       if (
         audio.sampleRate / 2 <
         (payload.settings.maxHz ?? 18_800) + 150
@@ -311,9 +350,11 @@ export function StudentCheckin({ session }: { session: Session }) {
           detectedAt,
         };
         if (
-          !activeWindow.best ||
-          peak.signalToNoiseDb >
-            activeWindow.best.signalToNoiseDb
+          peak.signalToNoiseDb >= 4.5 &&
+          peak.amplitude >= 0.00035 &&
+          (!activeWindow.best ||
+            peak.signalToNoiseDb + 10 * Math.log10(peak.amplitude) >
+              activeWindow.best.signalToNoiseDb + 10 * Math.log10(activeWindow.best.amplitude))
         ) {
           activeWindow.best = peak;
           setSignalQuality(peak.signalToNoiseDb);
@@ -322,12 +363,7 @@ export function StudentCheckin({ session }: { session: Session }) {
 
       const socket = new WebSocket(payload.websocketUrl);
       socketRef.current = socket;
-      captureTimeoutRef.current = window.setTimeout(() => {
-        if (!completedRef.current && !submittingRef.current) {
-          cleanup(); setState("idle");
-          setMessage("No complete room signal was received. Check the speaker or try Equipment check before listening again.");
-        }
-      }, 30000);
+      armCaptureTimeout(60_000); // Render free instances can take time to wake.
       socket.addEventListener("open", () => {
         socket.send(
           JSON.stringify({
@@ -343,6 +379,7 @@ export function StudentCheckin({ session }: { session: Session }) {
           cleanup(); setState("idle"); setMessage("The room signal is temporarily unavailable. Please try again shortly."); return;
         }
         if (liveMessage.type === "ready") {
+          armCaptureTimeout(35_000);
           clockOffsetRef.current =
             Number(liveMessage.serverTime ?? Date.now()) -
             Date.now();
@@ -351,6 +388,12 @@ export function StudentCheckin({ session }: { session: Session }) {
           );
         }
         if (liveMessage.type !== "challenge_window") return;
+        challengeWindowsRef.current += 1;
+        console.info("[presence:acoustic] challenge window received", {
+          windowsReceived: challengeWindowsRef.current,
+          leadMs: liveMessage.emittedAt - (Date.now() + clockOffsetRef.current),
+          durationMs: liveMessage.durationMs,
+        });
         if (challengeTimerRef.current) {
           window.clearTimeout(challengeTimerRef.current);
           finishChallengeWindow(captureTarget);
@@ -374,12 +417,18 @@ export function StudentCheckin({ session }: { session: Session }) {
         );
       });
       socket.addEventListener("close", () => {
+        if (socketRef.current !== socket) return;
+        cleanup();
         if (!completedRef.current && !submittingRef.current) {
           setState("idle");
           setMessage(
             "The live signal disconnected. Ask the teacher to keep the emitter open and try again.",
           );
         }
+      });
+      socket.addEventListener("error", () => {
+        console.warn("[presence:acoustic] realtime socket error");
+        setMessage("The room signal connection failed. Ask the teacher to keep the emitter open and retry.");
       });
     } catch (error) {
       cleanup();

@@ -6,6 +6,7 @@ import {
   auditActorId,
 } from "@/lib/audit";
 import { distanceInMeters } from "@/lib/attendance-utils";
+import { locationAccuracyLimit } from "@/lib/browser-location";
 import { requireProfile } from "@/lib/current-profile";
 import { db } from "@/lib/db";
 import {
@@ -135,7 +136,7 @@ async function markAttendance(request: Request) {
     session.method === "GEOLOCATION"
       ? validateLocationEvidence(session, parsed.data)
       : await validateAcousticEvidence(
-          session.id,
+          session,
           session.minFrequencyMatches ?? 4,
           parsed.data.proofs ?? [],
         );
@@ -348,6 +349,7 @@ function validateLocationEvidence(
   if (
     latitude === undefined ||
     longitude === undefined ||
+    accuracy === undefined ||
     session.latitude === null ||
     session.longitude === null ||
     session.radiusMeters === null
@@ -357,10 +359,15 @@ function validateLocationEvidence(
       status: 400,
     };
   }
-  if ((accuracy ?? 10_000) > Math.max(120, session.radiusMeters * 2)) {
+  const accuracyLimit = locationAccuracyLimit(session.radiusMeters);
+  if (accuracy > accuracyLimit) {
+    console.warn("[presence:location] student fix rejected", {
+      accuracyMeters: Math.round(accuracy),
+      requiredAccuracyMeters: Math.round(accuracyLimit),
+    });
     return {
       error:
-        "Location accuracy is too low for this classroom. Move near a window and try again.",
+        `Browser location is only accurate to ${Math.round(accuracy)} m. This classroom needs ${Math.round(accuracyLimit)} m or better; use ultrasound attendance instead.`,
       status: 422,
     };
   }
@@ -370,8 +377,13 @@ function validateLocationEvidence(
     latitude,
     longitude,
   );
-  const uncertaintyAllowance = Math.min(30, accuracy ?? 0);
+  const uncertaintyAllowance = Math.min(15, accuracy);
   if (distanceMeters > session.radiusMeters + uncertaintyAllowance) {
+    console.warn("[presence:location] outside room radius", {
+      distanceMeters: Math.round(distanceMeters),
+      accuracyMeters: Math.round(accuracy),
+      radiusMeters: session.radiusMeters,
+    });
     return {
       error: `You are ${Math.round(distanceMeters)} m from the classroom. The allowed radius is ${session.radiusMeters} m.`,
       status: 422,
@@ -383,13 +395,13 @@ function validateLocationEvidence(
       1,
       1 -
         distanceMeters / Math.max(1, session.radiusMeters) -
-        (accuracy ?? 0) / 300,
+        accuracy / 300,
     ),
   );
   const evidence = {
     protocolVersion: 2,
     kind: "geolocation",
-    accuracyMeters: Math.round((accuracy ?? 0) * 10) / 10,
+    accuracyMeters: Math.round(accuracy * 10) / 10,
     distanceMeters: Math.round(distanceMeters * 10) / 10,
     radiusMeters: session.radiusMeters,
   } satisfies Prisma.InputJsonObject;
@@ -402,7 +414,12 @@ function validateLocationEvidence(
 }
 
 async function validateAcousticEvidence(
-  sessionId: string,
+  session: {
+    id: string;
+    frequencyMinHz: number | null;
+    frequencyMaxHz: number | null;
+    frequencyIntervalMs: number | null;
+  },
   required: number,
   proofs: AcousticProof[],
 ): Promise<ValidatedEvidence | { error: string; status: number }> {
@@ -414,11 +431,21 @@ async function validateAcousticEvidence(
     [...unique.values()].map(async (proof) => ({
       proof,
       challenge: await loadAcousticChallenge(
-        sessionId,
+        session,
         proof.challengeId,
       ),
     })),
   );
+  if (candidates.length > 0 && candidates.every((item) => !item.challenge)) {
+    console.warn("[presence:acoustic] no committed challenges available to verifier", {
+      received: proofs.length,
+      redisConfigured: Boolean(process.env.REDIS_URL),
+    });
+    return {
+      error: "The room signal could not be verified by the server. Ask the teacher to retry; if this continues, check the realtime service and proof-secret settings.",
+      status: 503,
+    };
+  }
   const matches = candidates
     .filter(
       (
@@ -451,6 +478,18 @@ async function validateAcousticEvidence(
     .slice(0, 12);
 
   if (matches.length < required) {
+    console.warn("[presence:acoustic] proof rejected", {
+      received: proofs.length,
+      committedChallengesFound: candidates.filter((item) => item.challenge).length,
+      matchingChallenges: matches.length,
+      required,
+      reasons: {
+        missingChallenge: candidates.filter((item) => !item.challenge).length,
+        wrongFrequency: candidates.filter((item) => item.challenge && Math.abs(item.proof.observedHz - item.challenge.frequency) > 95).length,
+        weakSignal: candidates.filter((item) => item.challenge && (item.proof.signalToNoiseDb < 4.5 || item.proof.amplitude < 0.00035)).length,
+        outsideTimeWindow: candidates.filter((item) => item.challenge && Math.abs(item.proof.detectedAt - item.challenge.emittedAt) > item.challenge.durationMs + 1_200).length,
+      },
+    });
     return {
       error: `Only ${matches.length} of ${required} hidden acoustic challenges were verified. Keep the microphone near the classroom speaker and try again.`,
       status: 422,

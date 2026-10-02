@@ -68,6 +68,7 @@ export default async function StudentSessionPage({
           session={{
             id: session.id,
             method: session.method,
+            radiusMeters: session.radiusMeters,
             endsAt: session.endsAt.toISOString(),
             classroom: {
               name: session.classroom.name,

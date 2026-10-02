@@ -101,6 +101,12 @@ The WebSocket endpoint is now:
 wss://classpulse-realtime.khushpreet.dev/ws/attendance
 ```
 
+For ultrasound, `AUTH_SECRET` and `PRESENCE_PROOF_SECRET` must match between Render and Cloudflare. A single Render realtime instance can now use Neon's committed challenge events for Worker-side verification when Redis is absent; do not scale the realtime service to multiple instances without a shared `REDIS_URL` on both services. If Redis is configured, use a Redis endpoint reachable from both Render and Cloudflare. Never put its URL in Git.
+
+To diagnose a failed room check, inspect the teacher and student browser consoles for `[presence:acoustic]` timing, microphone, and captured-window summaries; Render logs show audit/publish failures, and Cloudflare tail shows proof rejection counts and causes. These diagnostics do not print coordinates, account identifiers, raw audio, or secret values. Some speakers and microphones filter 17.2–18.8 kHz entirely, so use Equipment check with the actual classroom devices before relying on ultrasound.
+
+Location verification asks the browser for fresh high-accuracy fixes and rejects fixes too coarse for the selected room radius. `enableHighAccuracy` is only a browser hint: desktop systems can still return Wi-Fi/IP-derived estimates. There is no application IP fallback. If the browser cannot reach the required accuracy, use ultrasound instead of widening the radius to disguise an unreliable fix.
+
 The free Render service sleeps after inactivity, so the first realtime connection can be slow. That does not affect normal pages, login, location attendance, or dashboards.
 
 ## 5. Create the Cloudflare Worker deployment
