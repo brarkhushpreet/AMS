@@ -137,6 +137,7 @@ export default async function StudentAttendancePage({
           verifiedAt: true,
           confidence: true,
           deviceVerified: true,
+          evidence: true,
         },
       },
     },
@@ -244,6 +245,9 @@ export default async function StudentAttendancePage({
                         <StatusPill tone="violet">
                           Passkey-confirmed
                         </StatusPill>
+                      ) : null}
+                      {record?.evidence && typeof record.evidence === "object" && !Array.isArray(record.evidence) && record.evidence.source === "TEACHER_CORRECTION" ? (
+                        <StatusPill tone="amber">Teacher-corrected</StatusPill>
                       ) : null}
                       <Link
                         href={`/dashboard/sessions/${session.id}/receipt`}

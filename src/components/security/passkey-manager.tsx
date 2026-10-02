@@ -33,8 +33,10 @@ type PasskeyItem = {
 
 export function PasskeyManager({
   initialPasskeys,
+  role,
 }: {
   initialPasskeys: PasskeyItem[];
+  role: "TEACHER" | "STUDENT";
 }) {
   const [passkeys, setPasskeys] = useState(initialPasskeys);
   const [supported, setSupported] = useState(true);
@@ -138,7 +140,7 @@ export function PasskeyManager({
       }
       toast.success("Passkey registered", {
         description:
-          "Future attendance proofs can now be bound to this device.",
+          role === "TEACHER" ? "You can now confirm live corrections and countersign sealed reports." : "Future check-ins will ask for device confirmation after presence is verified.",
       });
     } catch (error) {
       toast.error("Passkey was not registered", {
@@ -245,24 +247,25 @@ export function PasskeyManager({
 
   return (
     <div className="grid gap-5 xl:grid-cols-[0.85fr_1.15fr]">
-      <section className="rounded-xl border border-black/8 bg-[#151a17] p-6 text-white shadow-soft dark:border-white/8 dark:bg-[var(--surface)]">
-        <span className="grid size-12 place-items-center rounded-2xl bg-lime-300 text-[#152006]">
+      <section className="rounded-xl border border-[var(--border)] bg-[var(--accent-soft)] p-6 text-[var(--foreground)] shadow-soft dark:bg-[var(--surface)]">
+        <span className="grid size-12 place-items-center rounded-2xl bg-[var(--surface)] text-[var(--accent)]">
           <Fingerprint className="size-6" />
         </span>
-        <p className="mt-6 text-[0.62rem] font-semibold tracking-[0.16em] text-lime-300 uppercase">
-          Passkey-confirmed verification
+        <p className="mt-6 text-[0.62rem] font-semibold tracking-[0.16em] text-[var(--accent)] uppercase">
+          {role === "TEACHER" ? "Teacher approval" : "Passkey-confirmed check-in"}
         </p>
         <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em]">
-          Bind attendance to a passkey.
+          {role === "TEACHER" ? "Confirm corrections and reports." : "Bind your check-in to a passkey."}
         </h2>
-        <p className="mt-3 text-sm leading-6 text-white/48">
-          After presence is detected, your device signs a fresh server
-          challenge. Password sharing alone can no longer complete check-in.
+        <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+          {role === "TEACHER"
+            ? "While a session is live, correct a student's check-in with a recorded reason and device confirmation. After it closes, countersign the sealed report with this passkey. The passkey does not mark students present."
+            : "After location or ultrasound verifies your presence, your device confirms a fresh challenge. Only your own registered passkey affects your check-ins; your teacher's passkey does not."}
         </p>
 
-        <div className="mt-7 rounded-2xl border border-white/10 bg-white/[0.055] p-4">
+        <div className="mt-7 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
           {!supported ? (
-            <p className="text-xs font-bold text-amber-200">
+            <p className="text-xs font-bold text-amber-800 dark:text-amber-200">
               This browser does not expose WebAuthn. Use a current browser on a
               device with a screen lock or security key.
             </p>
@@ -277,7 +280,7 @@ export function PasskeyManager({
                 onChange={(event) => setName(event.target.value)}
                 maxLength={60}
                 placeholder="Personal laptop"
-                className="border-white/10 bg-white/8 text-white"
+                className="border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)]"
               />
               <Button
                 type="button"
@@ -321,8 +324,9 @@ export function PasskeyManager({
               No passkey registered
             </p>
             <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-white/60">
-              Attendance still works, but records will show standard rather
-              than passkey-confirmed assurance.
+              {role === "TEACHER"
+                ? "You can run sessions, but corrections and report approval require a registered passkey."
+                : "Attendance still works, but check-ins will not have passkey-confirmed assurance."}
             </p>
           </div>
         ) : (

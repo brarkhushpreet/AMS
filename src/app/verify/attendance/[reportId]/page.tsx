@@ -89,6 +89,17 @@ export default async function PublicReportVerifier({
           />
         </section>
 
+        <section className="mt-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 text-sm text-[var(--foreground)]">
+          <p className="font-semibold">Teacher approval</p>
+          <p className="mt-1 text-[var(--muted)]">
+            {report.teacherAttestation
+              ? verification.teacherAttestationValid
+                ? `Passkey signature verified for this report · ${formatDate(report.teacherAttestation.signedAt)}`
+                : "A teacher approval exists, but its passkey signature failed verification."
+              : "Not countersigned by the teacher. The server integrity seal above is independent."}
+          </p>
+        </section>
+
         <section className="mt-5 rounded-xl border border-black/8 bg-[var(--surface)] p-5 shadow-card dark:border-white/8 dark:bg-[var(--surface)] sm:p-7">
           <div className="grid gap-5 sm:grid-cols-2">
             <VerifierHash

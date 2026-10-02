@@ -29,7 +29,23 @@ export async function GET(
       payloadHashValid: verification.payloadValid,
       signatureValid: verification.signatureValid,
       signingKeyTrusted: verification.keyTrusted,
+      teacherAttestationValid: verification.teacherAttestationValid,
     },
+    teacherAttestation: verification.report.teacherAttestation
+      ? {
+          reportHash: verification.report.teacherAttestation.reportHash,
+          teacherUserId: verification.report.teacherAttestation.teacherUserId,
+          challenge: verification.report.teacherAttestation.challenge,
+          credentialId: verification.report.teacherAttestation.credentialId,
+          publicKey: Buffer.from(verification.report.teacherAttestation.publicKey).toString("base64url"),
+          counterBefore: String(verification.report.teacherAttestation.counterBefore),
+          origin: verification.report.teacherAttestation.origin,
+          rpId: verification.report.teacherAttestation.rpId,
+          assertion: verification.report.teacherAttestation.assertion,
+          serverSignature: verification.report.teacherAttestation.serverSignature,
+          signedAt: verification.report.teacherAttestation.signedAt.toISOString(),
+        }
+      : null,
     auditEvents: verification.report.session.auditEvents
       .slice(0, verification.report.eventCount)
       .map((event) => ({
@@ -47,7 +63,7 @@ export async function GET(
     headers: {
       "content-type": "application/json; charset=utf-8",
       "content-disposition": `attachment; filename="classpulse-report-${reportId}.json"`,
-      "cache-control": "public, max-age=60, stale-while-revalidate=300",
+      "cache-control": "no-store",
     },
   });
 }

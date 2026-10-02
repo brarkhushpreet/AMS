@@ -116,6 +116,7 @@ model AttendanceSession {
   frequencyIntervalMs Int?
   minFrequencyMatches Int?
   attendanceRecords   AttendanceRecord[]
+  corrections         AttendanceCorrection[]
   presenceProofs      PresenceVerification[]
   auditEvents         AttendanceAuditEvent[]
   report              AttendanceReport?
@@ -147,6 +148,20 @@ model AttendanceRecord {
   @@index([studentId, verifiedAt])
 }
 
+model AttendanceCorrection {
+  id            String            @id @default(uuid())
+  session       AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId     String
+  studentId     String
+  teacherUserId String
+  present       Boolean
+  reason        String
+  credentialId  String
+  createdAt     DateTime          @default(now())
+
+  @@index([sessionId, createdAt])
+}
+
 model PasskeyCredential {
   id         String                 @id
   user       User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -170,6 +185,8 @@ model WebAuthnCeremony {
   user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId       String
   type         WebAuthnCeremonyType
+  purpose      String?
+  payload      Json?
   challenge    String               @unique
   authorizedAt DateTime?
   expiresAt    DateTime
@@ -241,6 +258,24 @@ model AttendanceReport {
   publicKey   String
   algorithm   String            @default("Ed25519")
   generatedAt DateTime          @default(now())
+  teacherAttestation TeacherReportAttestation?
+}
+
+model TeacherReportAttestation {
+  id            String           @id @default(uuid())
+  report        AttendanceReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  reportId      String           @unique
+  teacherUserId String
+  credentialId  String
+  publicKey     Bytes
+  counterBefore BigInt
+  challenge     String
+  reportHash    String
+  origin        String
+  rpId          String
+  assertion     Json
+  serverSignature String
+  signedAt      DateTime         @default(now())
 }
 
 enum Role {
@@ -274,6 +309,7 @@ enum InvitationStatus {
 enum WebAuthnCeremonyType {
   REGISTRATION
   MANAGEMENT
+  TEACHER_ACTION
 }
 
 enum PresenceVerificationStatus {
@@ -289,6 +325,7 @@ enum AttendanceAuditEventType {
   PROOF_ACCEPTED
   DEVICE_VERIFIED
   ATTENDANCE_RECORDED
+  ATTENDANCE_CORRECTED
   SESSION_CLOSED
   REPORT_SIGNED
 }

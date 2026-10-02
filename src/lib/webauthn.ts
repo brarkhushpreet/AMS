@@ -43,12 +43,14 @@ export function webAuthnConfig(request: Request) {
 export function authenticationOptions(
   request: Request,
   passkeys: PasskeyCredential[],
+  challenge?: Uint8Array,
 ) {
   const { rpID } = webAuthnConfig(request);
   const options: GenerateAuthenticationOptionsOpts = {
     rpID,
     timeout: 60_000,
     userVerification: "required",
+    ...(challenge ? { challenge } : {}),
     allowCredentials: passkeys.map((passkey) => ({
       id: Buffer.from(passkey.id, "base64url"),
       type: "public-key",

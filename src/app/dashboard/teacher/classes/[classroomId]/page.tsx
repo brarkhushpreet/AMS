@@ -16,6 +16,7 @@ import { requireRole } from "@/lib/current-profile";
 import { attendanceRate } from "@/lib/attendance-utils";
 import { RosterImport } from "@/components/classrooms/roster-import";
 import { SessionControl } from "@/components/attendance/session-control";
+import { AttendanceCorrection } from "@/components/attendance/teacher-passkey-action";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { StatusPill } from "@/components/ui/status-pill";
 import { CopyButton } from "@/components/ui/copy-button";
@@ -61,11 +62,17 @@ export default async function TeacherClassroomPage({
     },
   });
   if (!classroom) notFound();
+  const recentCorrections = await db.attendanceCorrection.findMany({
+    where: { session: { classroomId: classroom.id } },
+    orderBy: { createdAt: "desc" },
+    take: 8,
+  });
 
   const active =
     classroom.attendanceSessions.find(
       (session) => session.status === "ACTIVE" && session.endsAt > new Date(),
     ) ?? null;
+  const hasPasskey = active ? (await db.passkeyCredential.count({ where: { userId: profile.id } })) > 0 : false;
   const marked = classroom.attendanceSessions.reduce(
     (sum, session) => sum + session.attendanceRecords.length,
     0,
@@ -142,6 +149,22 @@ export default async function TeacherClassroomPage({
         />
         <RosterImport classroomId={classroom.id} />
       </section>
+
+      {active && <AttendanceCorrection
+        sessionId={active.id}
+        hasPasskey={hasPasskey}
+        students={classroom.enrollments.map(({ student }) => ({
+          id: student.id,
+          name: student.user.name,
+          present: active.attendanceRecords.some((record) => record.studentId === student.id),
+        }))}
+      />}
+
+      {recentCorrections.length > 0 && <section className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card sm:p-6">
+        <h3 className="font-semibold">Recent attendance corrections</h3>
+        <p className="mt-1 text-xs text-[var(--muted)]">Reasons stay in the teacher workspace; public receipts contain only their hashes.</p>
+        <div className="mt-4 divide-y divide-[var(--border)]">{recentCorrections.map((correction) => <div key={correction.id} className="flex flex-wrap justify-between gap-2 py-3 text-sm"><div><p className="font-medium">{classroom.enrollments.find(({ student }) => student.id === correction.studentId)?.student.user.name ?? "Former student"} · {correction.present ? "Marked present" : "Check-in removed"}</p><p className="mt-1 text-xs text-[var(--muted)]">{correction.reason}</p></div><span className="text-xs text-[var(--muted)]">{formatDate(correction.createdAt)}</span></div>)}</div>
+      </section>}
 
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
         <div className="flex flex-col justify-between gap-3 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center">

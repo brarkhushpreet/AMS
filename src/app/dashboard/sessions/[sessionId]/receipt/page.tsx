@@ -16,6 +16,7 @@ import {
   verifyAttendanceReport,
 } from "@/lib/audit";
 import { ReportActions } from "@/components/attendance/report-actions";
+import { ReportPasskeySign } from "@/components/attendance/teacher-passkey-action";
 import { StatusPill } from "@/components/ui/status-pill";
 import { formatDate, formatMethod } from "@/lib/utils";
 
@@ -65,6 +66,10 @@ export default async function AttendanceReceiptPage({
   const verification = report
     ? await verifyAttendanceReport(report.id)
     : null;
+  const teacherAttestation = verification?.report.teacherAttestation;
+  const teacherPasskeyCount = report && profile.role === "TEACHER" && !teacherAttestation
+    ? await db.passkeyCredential.count({ where: { userId: profile.id } })
+    : 0;
   const backHref =
     profile.role === "TEACHER"
       ? "/dashboard/teacher/attendance"
@@ -112,6 +117,14 @@ export default async function AttendanceReceiptPage({
 
       {verification ? (
         <>
+          <section className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 text-sm text-[var(--foreground)] shadow-card">
+            {teacherAttestation
+              ? <>Teacher passkey confirmation {verification.teacherAttestationValid ? "verified" : "failed verification"} · {formatDate(teacherAttestation.signedAt)}. This approves the sealed report; the server signature above protects its audit history.</>
+              : "This report has a server integrity seal but has not yet been approved with the teacher’s passkey."}
+          </section>
+          {profile.role === "TEACHER" && !teacherAttestation && verification.valid && report
+            ? <ReportPasskeySign reportId={report.id} hasPasskey={teacherPasskeyCount > 0} />
+            : null}
           <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <ProofStat
               icon={Link2}

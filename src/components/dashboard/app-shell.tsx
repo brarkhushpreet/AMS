@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   BarChart3,
   BookOpen,
   CalendarCheck2,
   LogOut,
+  LoaderCircle,
   Menu,
   PanelLeftClose,
   Plus,
@@ -77,10 +78,39 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [navigatingTo, setNavigatingTo] = useState<string | null>(null);
+  const navigating = navigatingTo !== null && navigatingTo !== pathname;
   const navigation = navByRole[role];
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => setNavigatingTo(null), 0);
+    return () => window.clearTimeout(timer);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!navigatingTo) return;
+    const timer = window.setTimeout(() => setNavigatingTo(null), 30_000);
+    return () => window.clearTimeout(timer);
+  }, [navigatingTo]);
+
+  function showNavigationFeedback(event: React.MouseEvent<HTMLDivElement>) {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const anchor = (event.target as HTMLElement).closest<HTMLAnchorElement>("a[href]");
+    if (!anchor || anchor.hasAttribute("download") || anchor.target === "_blank") return;
+    const destination = new URL(anchor.href, window.location.href);
+    if (destination.origin !== window.location.origin || destination.pathname === window.location.pathname) return;
+    setNavigatingTo(destination.pathname);
+  }
+
   return (
-    <div className="min-h-screen bg-[var(--background)] transition-colors dark:bg-[var(--background)]">
+    <div onClickCapture={showNavigationFeedback} className="min-h-screen bg-[var(--background)] transition-colors dark:bg-[var(--background)]">
+      {navigating && <div role="status" aria-live="polite" className="fixed inset-0 z-[90] grid place-items-center bg-[var(--background)]/92 backdrop-blur-sm">
+        <div className="flex flex-col items-center gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-10 py-8 shadow-xl">
+          <LoaderCircle className="size-8 animate-spin text-[var(--accent)] motion-reduce:animate-none" />
+          <p className="text-sm font-semibold text-[var(--foreground)]">Opening workspace…</p>
+          <p className="text-xs text-[var(--muted)]">Loading the next page and its latest data</p>
+        </div>
+      </div>}
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-50 flex w-60 flex-col border-r border-[var(--border)] bg-[var(--surface)] p-3 transition-transform lg:translate-x-0",

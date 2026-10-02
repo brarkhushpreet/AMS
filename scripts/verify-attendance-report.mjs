@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
-import { createPublicKey, verify } from "node:crypto";
+import { createPublicKey, timingSafeEqual, verify } from "node:crypto";
+import { verifyAuthenticationResponse } from "@simplewebauthn/server";
 import {
   AUDIT_GENESIS_HASH,
   canonicalJson,
@@ -75,11 +76,60 @@ const signingIdentityTrusted = trustedKey
   ? trustedKey === artifact.publicKey
   : null;
 
+let teacherAttestationValid = null;
+if (artifact.teacherAttestation) {
+  teacherAttestationValid = false;
+  try {
+    const approval = artifact.teacherAttestation;
+    const challenge = Buffer.from(approval.challenge, "base64url");
+    const signedAction = { action: "SIGN_REPORT", reportId: artifact.reportId, reportHash: artifact.payloadHash };
+    const expectedDigest = Buffer.from(sha256Hex(canonicalJson(signedAction)), "hex");
+    const certificate = {
+      schema: "classpulse.teacher-approval.v1",
+      reportId: artifact.reportId,
+      reportHash: approval.reportHash,
+      teacherUserId: approval.teacherUserId,
+      credentialId: approval.credentialId,
+      publicKeyHash: sha256Hex(Buffer.from(approval.publicKey, "base64url")),
+      challenge: approval.challenge,
+      origin: approval.origin,
+      rpId: approval.rpId,
+      counterBefore: String(approval.counterBefore),
+      signedAt: approval.signedAt,
+    };
+    const certificateValid = verify(
+      null,
+      Buffer.from(canonicalJson(certificate)),
+      createPublicKey({ key: Buffer.from(artifact.publicKey, "base64url"), format: "der", type: "spki" }),
+      Buffer.from(approval.serverSignature, "base64url"),
+    );
+    if (certificateValid && challenge.length === 64 && timingSafeEqual(challenge.subarray(32), expectedDigest) && approval.reportHash === artifact.payloadHash) {
+      const result = await verifyAuthenticationResponse({
+        response: approval.assertion,
+        expectedChallenge: approval.challenge,
+        expectedOrigin: approval.origin,
+        expectedRPID: approval.rpId,
+        authenticator: {
+          credentialID: Buffer.from(approval.credentialId, "base64url"),
+          credentialPublicKey: Buffer.from(approval.publicKey, "base64url"),
+          counter: Number(approval.counterBefore),
+          transports: [],
+        },
+        requireUserVerification: true,
+      });
+      teacherAttestationValid = result.verified;
+    }
+  } catch {
+    teacherAttestationValid = false;
+  }
+}
+
 const valid =
   chainValid &&
   payloadHashValid &&
   signatureValid &&
-  signingIdentityTrusted !== false;
+  signingIdentityTrusted !== false &&
+  teacherAttestationValid !== false;
 console.log(`Report: ${artifact.reportId}`);
 console.log(`Hash chain: ${chainValid ? "VALID" : "INVALID"}`);
 console.log(
@@ -88,6 +138,7 @@ console.log(
 console.log(
   `Ed25519 signature: ${signatureValid ? "VALID" : "INVALID"}`,
 );
+console.log(`Teacher passkey: ${teacherAttestationValid === null ? "NOT SIGNED" : teacherAttestationValid ? "VALID" : "INVALID"}`);
 console.log(
   `Signing identity: ${
     signingIdentityTrusted === null

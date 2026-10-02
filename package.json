@@ -27,7 +27,7 @@
     "cf:typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node --test tests/protocol.test.mjs tests/spectrum.test.mjs tests/companion-state.test.mjs",
+    "test": "node --test tests/protocol.test.mjs tests/spectrum.test.mjs tests/companion-state.test.mjs && tsx --test tests/teacher-action-challenge.test.ts",
     "test:demo": "tsx --test tests/demo-policy.test.ts",
     "test:integration": "node scripts/run-integration.mjs",
     "benchmark": "node scripts/run-integration.mjs --benchmark",

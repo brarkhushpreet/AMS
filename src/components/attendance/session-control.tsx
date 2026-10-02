@@ -38,7 +38,7 @@ export function SessionControl({
   activeSession: ActiveSession | null;
 }) {
   const router = useRouter();
-  const [method, setMethod] = useState<"GEOLOCATION" | "ULTRASOUND">("GEOLOCATION");
+  const [method, setMethod] = useState<"GEOLOCATION" | "ULTRASOUND">("ULTRASOUND");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
 
@@ -129,20 +129,20 @@ export function SessionControl({
 
       <div className="mt-5 grid grid-cols-2 gap-3">
         <MethodButton
-          active={method === "GEOLOCATION"}
-          onClick={() => setMethod("GEOLOCATION")}
-          icon={MapPin}
-          title="Location"
-          detail="Fast & flexible"
-          tone="blue"
-        />
-        <MethodButton
           active={method === "ULTRASOUND"}
           onClick={() => setMethod("ULTRASOUND")}
           icon={Waves}
           title="Ultrasound"
-          detail="Stricter presence"
+          detail="Recommended · stricter presence"
           tone="violet"
+        />
+        <MethodButton
+          active={method === "GEOLOCATION"}
+          onClick={() => setMethod("GEOLOCATION")}
+          icon={MapPin}
+          title="Location"
+          detail="Flexible alternative"
+          tone="blue"
         />
       </div>
 

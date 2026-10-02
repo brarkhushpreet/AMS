@@ -6,11 +6,14 @@ import {
   timingSafeEqual,
   verify,
 } from "node:crypto";
+import { verifyAuthenticationResponse } from "@simplewebauthn/server";
+import type { AuthenticationResponseJSON, AuthenticatorDevice } from "@simplewebauthn/types";
 import type {
   AttendanceAuditEventType,
   Prisma,
 } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
+import { matchesTeacherActionChallenge } from "@/lib/teacher-action-challenge";
 import {
   AUDIT_GENESIS_HASH,
   canonicalJson,
@@ -68,6 +71,25 @@ export function attendanceSigningIdentity() {
       Buffer.from(encodedPublicKey, "base64url"),
     ).slice(0, 24),
   };
+}
+
+export function teacherApprovalPayload(input: {
+  reportId: string;
+  reportHash: string;
+  teacherUserId: string;
+  credentialId: string;
+  publicKeyHash: string;
+  challenge: string;
+  origin: string;
+  rpId: string;
+  counterBefore: string;
+  signedAt: string;
+}) {
+  return { schema: "classpulse.teacher-approval.v1", ...input };
+}
+
+export function signTeacherApproval(input: Parameters<typeof teacherApprovalPayload>[0]) {
+  return sign(null, Buffer.from(canonicalJson(teacherApprovalPayload(input))), signingKeys().privateKey).toString("base64url");
 }
 
 export function auditActorId(userId: string) {
@@ -261,6 +283,7 @@ export async function verifyAttendanceReport(reportId: string) {
   const report = await db.attendanceReport.findUnique({
     where: { id: reportId },
     include: {
+      teacherAttestation: true,
       session: {
         select: {
           id: true,
@@ -344,6 +367,47 @@ export async function verifyAttendanceReport(reportId: string) {
     trustedKeyBytes.length === reportKeyBytes.length &&
     timingSafeEqual(trustedKeyBytes, reportKeyBytes);
 
+  let teacherAttestationValid: boolean | null = null;
+  const attestation = report.teacherAttestation;
+  if (attestation) {
+    teacherAttestationValid = false;
+    try {
+      const action = { action: "SIGN_REPORT", reportId: report.id, reportHash: report.payloadHash };
+      const certificate = teacherApprovalPayload({
+        reportId: report.id, reportHash: attestation.reportHash,
+        teacherUserId: attestation.teacherUserId, credentialId: attestation.credentialId,
+        publicKeyHash: sha256Hex(attestation.publicKey),
+        challenge: attestation.challenge, origin: attestation.origin, rpId: attestation.rpId,
+        counterBefore: String(attestation.counterBefore), signedAt: attestation.signedAt.toISOString(),
+      });
+      const serverCertificateValid = verify(
+        null,
+        Buffer.from(canonicalJson(certificate)),
+        createPublicKey({ key: Buffer.from(report.publicKey, "base64url"), format: "der", type: "spki" }),
+        Buffer.from(attestation.serverSignature, "base64url"),
+      );
+      if (serverCertificateValid && attestation.reportHash === report.payloadHash && matchesTeacherActionChallenge(attestation.challenge, action)) {
+        const credential: AuthenticatorDevice = {
+          credentialID: Buffer.from(attestation.credentialId, "base64url"),
+          credentialPublicKey: new Uint8Array(attestation.publicKey),
+          counter: Number(attestation.counterBefore),
+          transports: [],
+        };
+        const verified = await verifyAuthenticationResponse({
+          response: attestation.assertion as unknown as AuthenticationResponseJSON,
+          expectedChallenge: attestation.challenge,
+          expectedOrigin: attestation.origin,
+          expectedRPID: attestation.rpId,
+          authenticator: credential,
+          requireUserVerification: true,
+        });
+        teacherAttestationValid = verified.verified;
+      }
+    } catch {
+      teacherAttestationValid = false;
+    }
+  }
+
   return {
     report,
     payload,
@@ -351,11 +415,13 @@ export async function verifyAttendanceReport(reportId: string) {
     payloadValid: payloadHash === report.payloadHash,
     signatureValid,
     keyTrusted,
+    teacherAttestationValid,
     valid:
       chainValid &&
       payloadHash === report.payloadHash &&
       signatureValid &&
-      keyTrusted,
+      keyTrusted &&
+      teacherAttestationValid !== false,
     keyFingerprint: sha256Hex(
       Buffer.from(report.publicKey, "base64url"),
     ).slice(0, 24),
