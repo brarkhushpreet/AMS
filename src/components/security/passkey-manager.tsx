@@ -259,8 +259,8 @@ export function PasskeyManager({
         </h2>
         <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
           {role === "TEACHER"
-            ? "While a session is live, correct a student's check-in with a recorded reason and device confirmation. After it closes, countersign the sealed report with this passkey. The passkey does not mark students present."
-            : "After location or ultrasound verifies your presence, your device confirms a fresh challenge. Only your own registered passkey affects your check-ins; your teacher's passkey does not."}
+            ? "Approve attendance corrections during a live session and sign its final report after closing. Each approval requires confirmation on a registered device."
+            : "After location or ultrasound verifies presence, confirm the check-in with a registered device. This adds protection if an account password is shared or compromised."}
         </p>
 
         <div className="mt-7 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">

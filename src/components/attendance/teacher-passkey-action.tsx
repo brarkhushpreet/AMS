@@ -50,7 +50,7 @@ export function AttendanceCorrection({
     setPending(true);
     try {
       await confirmAction({ action: "CORRECT_ATTENDANCE", sessionId, studentId, present: present === "present", reason: reason.trim() });
-      toast.success("Attendance corrected", { description: "The passkey-confirmed change was added to the session audit trail." });
+      toast.success("Attendance corrected", { description: "The change was recorded with the session." });
       setReason("");
       router.refresh();
     } catch (error) {
@@ -89,5 +89,5 @@ export function ReportPasskeySign({ reportId, hasPasskey }: { reportId: string; 
       toast.error("Report not signed", { description: error instanceof Error ? error.message : "Try again." });
     } finally { setPending(false); }
   }
-  return <section className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card sm:p-6"><div className="flex items-start gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-lg bg-[var(--accent-soft)] text-[var(--accent)]"><Fingerprint className="size-5" /></span><div><h3 className="font-semibold">Teacher countersignature</h3><p className="mt-1 text-xs leading-5 text-[var(--muted)]">Confirm the final sealed report with your passkey. This records who approved this exact report; it does not replace the server’s integrity seal.</p></div></div>{hasPasskey ? <Button type="button" variant="brand" className="mt-4" disabled={pending} onClick={sign}>{pending ? <LoaderCircle className="size-4 animate-spin" /> : <Fingerprint className="size-4" />}{pending ? "Confirming…" : "Sign report with passkey"}</Button> : <p className="mt-4 text-sm text-[var(--muted)]">First <Link href="/dashboard/security" className="font-semibold text-[var(--accent)] underline">register a teacher passkey</Link>.</p>}</section>;
+  return <section className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card sm:p-6"><div className="flex items-start gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-lg bg-[var(--accent-soft)] text-[var(--accent)]"><Fingerprint className="size-5" /></span><div><h3 className="font-semibold">Teacher approval</h3><p className="mt-1 text-xs leading-5 text-[var(--muted)]">Confirm the final report with a passkey. The approval is attached to this report and can be verified later.</p></div></div>{hasPasskey ? <Button type="button" variant="brand" className="mt-4" disabled={pending} onClick={sign}>{pending ? <LoaderCircle className="size-4 animate-spin" /> : <Fingerprint className="size-4" />}{pending ? "Confirming…" : "Sign report with passkey"}</Button> : <p className="mt-4 text-sm text-[var(--muted)]">First <Link href="/dashboard/security" className="font-semibold text-[var(--accent)] underline">register a teacher passkey</Link>.</p>}</section>;
 }

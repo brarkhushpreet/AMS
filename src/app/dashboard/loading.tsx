@@ -1,10 +1,13 @@
-import { LoaderCircle } from "lucide-react";
+import { RadioTower } from "lucide-react";
 
 export default function DashboardLoading() {
-  return <div role="status" aria-live="polite" className="space-y-5">
-    <div className="flex items-center gap-3 text-sm font-medium text-[var(--muted)]"><LoaderCircle className="size-4 animate-spin text-[var(--accent)] motion-reduce:animate-none" />Loading current data…</div>
-    <div className="h-32 animate-pulse rounded-xl border border-[var(--border)] bg-[var(--surface)] motion-reduce:animate-none" />
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{[0, 1, 2, 3].map((item) => <div key={item} className="h-28 animate-pulse rounded-xl border border-[var(--border)] bg-[var(--surface)] motion-reduce:animate-none" />)}</div>
-    <div className="h-56 animate-pulse rounded-xl border border-[var(--border)] bg-[var(--surface)] motion-reduce:animate-none" />
-  </div>;
+  return (
+    <div role="status" aria-live="polite" className="flex min-h-[calc(100dvh-9rem)] flex-col items-center justify-center gap-5">
+      <div className="relative grid size-14 place-items-center">
+        <span className="absolute inset-0 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--accent)] motion-reduce:animate-none" aria-hidden="true" />
+        <RadioTower className="size-5 text-[var(--accent)]" aria-hidden="true" />
+      </div>
+      <p className="text-sm font-medium tracking-wide text-[var(--muted)]">Loading…</p>
+    </div>
+  );
 }

@@ -162,7 +162,7 @@ export default async function TeacherClassroomPage({
 
       {recentCorrections.length > 0 && <section className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card sm:p-6">
         <h3 className="font-semibold">Recent attendance corrections</h3>
-        <p className="mt-1 text-xs text-[var(--muted)]">Reasons stay in the teacher workspace; public receipts contain only their hashes.</p>
+        <p className="mt-1 text-xs text-[var(--muted)]">Correction reasons are visible here, but not on shared reports.</p>
         <div className="mt-4 divide-y divide-[var(--border)]">{recentCorrections.map((correction) => <div key={correction.id} className="flex flex-wrap justify-between gap-2 py-3 text-sm"><div><p className="font-medium">{classroom.enrollments.find(({ student }) => student.id === correction.studentId)?.student.user.name ?? "Former student"} · {correction.present ? "Marked present" : "Check-in removed"}</p><p className="mt-1 text-xs text-[var(--muted)]">{correction.reason}</p></div><span className="text-xs text-[var(--muted)]">{formatDate(correction.createdAt)}</span></div>)}</div>
       </section>}
 

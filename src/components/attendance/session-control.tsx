@@ -412,8 +412,7 @@ function LiveSessionCard({
     if (audioRef.current && audioRef.current.state !== "closed") await audioRef.current.close();
     setClosing(false);
     toast.success("Attendance ended", {
-      description:
-        "The session was closed and its audit chain was cryptographically sealed.",
+      description: "The attendance report is ready to review.",
       action: result.reportId
         ? {
             label: "View receipt",
@@ -428,26 +427,26 @@ function LiveSessionCard({
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-emerald-700/12 bg-[var(--surface)] shadow-card dark:border-blue-300/10 dark:bg-[var(--surface)]">
-      <div className="bg-[#151a17] px-5 py-4 text-white dark:bg-[#101513]">
+    <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-card">
+      <div className="border-b border-[var(--border)] bg-[var(--accent-soft)] px-5 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="grid size-10 place-items-center rounded-xl bg-white/15">
+            <span className="grid size-10 place-items-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--accent)]">
               {session.method === "ULTRASOUND" ? <Waves className="size-5" /> : <LocateFixed className="size-5" />}
             </span>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-semibold">Attendance is live</h3>
+                <h3 className="font-semibold text-[var(--foreground)]">Attendance is live</h3>
                 <StatusPill tone="green" pulse>Active</StatusPill>
               </div>
-              <p className="mt-1 text-xs font-semibold text-white/42">
+              <p className="mt-1 text-xs font-medium text-[var(--muted)]">
                 {formatMethod(session.method)} verification
               </p>
             </div>
           </div>
-          <div className="rounded-xl border border-white/10 bg-white/6 px-3 py-2 text-center">
-            <p className="font-mono text-lg font-semibold">{remaining}</p>
-            <p className="text-[0.58rem] font-bold text-emerald-50">remaining</p>
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-center">
+            <p className="font-mono text-lg font-semibold tabular-nums text-[var(--foreground)]">{remaining}</p>
+            <p className="text-[0.58rem] font-semibold text-[var(--muted)]">remaining</p>
           </div>
         </div>
       </div>
@@ -464,11 +463,11 @@ function LiveSessionCard({
                 <AudioLines className="size-5" />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-slate-800">
+                <p className="text-sm font-semibold text-[var(--foreground)]">
                   {signalRunning && frequency ? "Room signal is playing" : signalRunning ? "Waiting for the next room signal" : "Start the classroom speaker"}
                 </p>
-                <p className="mt-1 text-xs font-semibold text-slate-500">
-                  {frequency ? `${(frequency / 1_000).toFixed(1)} kHz now · hidden from student clients` : "Use a classroom speaker for better coverage."}
+                <p className="mt-1 text-xs font-medium text-[var(--muted)]">
+                  {frequency ? `${(frequency / 1_000).toFixed(1)} kHz · changing automatically` : "Use a classroom speaker for better coverage."}
                 </p>
               </div>
               {signalRunning && (
@@ -505,8 +504,8 @@ function LiveSessionCard({
               <LocateFixed className="size-5" />
             </span>
             <div>
-              <p className="text-sm font-semibold text-slate-800">Classroom radius is active</p>
-              <p className="mt-1 text-xs font-semibold text-slate-500">
+              <p className="text-sm font-semibold text-[var(--foreground)]">Classroom radius is active</p>
+              <p className="mt-1 text-xs font-medium text-[var(--muted)]">
                 Students within {session.radiusMeters ?? 40} m can check in.
               </p>
             </div>
