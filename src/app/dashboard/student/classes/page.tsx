@@ -4,6 +4,7 @@ import { ArrowUpRight, BookOpen, Plus } from "lucide-react";
 import { requireRole } from "@/lib/current-profile";
 import { getStudentDashboard } from "@/lib/dashboard-data";
 import { EmptyClassrooms } from "@/components/classrooms/classroom-cards";
+import { StudentSessionWatcher } from "@/components/attendance/student-session-watcher";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +16,9 @@ export default async function StudentClassesPage() {
 
   return (
     <div className="space-y-6">
+      {data.classrooms.length > 0 && (
+        <StudentSessionWatcher initialSessionIds={data.classrooms.flatMap((classroom) => classroom.activeSession ? [classroom.activeSession.id] : [])} />
+      )}
       <section className="flex flex-col justify-between gap-4 border-b border-[var(--border)] pb-5 sm:flex-row sm:items-end">
         <div>
           <h2 className="text-2xl font-semibold tracking-tight text-[var(--foreground)]">

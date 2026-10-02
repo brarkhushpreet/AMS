@@ -13,6 +13,7 @@ import { requireRole } from "@/lib/current-profile";
 import { attendanceRate } from "@/lib/attendance-utils";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { AttendanceFilters } from "@/components/attendance/attendance-filters";
+import { StudentSessionWatcher } from "@/components/attendance/student-session-watcher";
 import { Pagination } from "@/components/ui/pagination";
 import { StatusPill } from "@/components/ui/status-pill";
 import { cn, formatDate, formatMethod } from "@/lib/utils";
@@ -106,7 +107,10 @@ export default async function StudentAttendancePage({
     db.attendanceSession.findMany({
       where: summaryWhere,
       select: {
+        id: true,
         method: true,
+        status: true,
+        endsAt: true,
         _count: {
           select: { attendanceRecords: { where: { studentId } } },
         },
@@ -158,6 +162,9 @@ export default async function StudentAttendancePage({
 
   return (
     <div className="space-y-6">
+      {classrooms.length > 0 && (
+        <StudentSessionWatcher initialSessionIds={summarySessions.filter((session) => session.status === "ACTIVE" && session.endsAt > now).map((session) => session.id)} />
+      )}
       <section className="border-b border-[var(--border)] pb-6">
         <div>
           <p className="text-sm text-[var(--muted)]">Personal archive</p>

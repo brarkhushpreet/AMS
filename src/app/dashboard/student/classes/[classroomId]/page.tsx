@@ -15,6 +15,7 @@ import { requireRole } from "@/lib/current-profile";
 import { attendanceRate } from "@/lib/attendance-utils";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { AttendanceFilters } from "@/components/attendance/attendance-filters";
+import { StudentSessionWatcher } from "@/components/attendance/student-session-watcher";
 import { Pagination } from "@/components/ui/pagination";
 import { StatusPill } from "@/components/ui/status-pill";
 import { buttonVariants } from "@/components/ui/button";
@@ -114,6 +115,7 @@ export default async function StudentClassroomPage({
 
   return (
     <div className="space-y-7">
+      <StudentSessionWatcher initialSessionIds={active ? [active.id] : []} classroomId={classroomId} />
       <Link href="/dashboard/student/classes" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-950">
         <ArrowLeft className="size-3.5" />
         My classrooms

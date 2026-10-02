@@ -16,6 +16,7 @@ import { StudentTrendChart } from "@/components/dashboard/analytics-charts";
 import { StatusPill } from "@/components/ui/status-pill";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyClassrooms } from "@/components/classrooms/classroom-cards";
+import { StudentSessionWatcher } from "@/components/attendance/student-session-watcher";
 import { cn, formatDate, formatMethod } from "@/lib/utils";
 
 export default async function StudentOverviewPage() {
@@ -25,6 +26,9 @@ export default async function StudentOverviewPage() {
 
   return (
     <div className="space-y-7">
+      {data.classrooms.length > 0 && (
+        <StudentSessionWatcher initialSessionIds={active.map((classroom) => classroom.activeSession!.id)} />
+      )}
       <section className="flex flex-col justify-between gap-5 border-b border-[var(--border)] pb-7 sm:flex-row sm:items-end">
         <div>
           <p className="mb-2 text-sm text-[var(--muted)]">Welcome back, {profile.name.split(" ")[0]}</p>
