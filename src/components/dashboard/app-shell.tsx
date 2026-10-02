@@ -18,7 +18,6 @@ import {
 import type { Role } from "@/generated/prisma/client";
 import { BrandLogo } from "@/components/brand-logo";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { logoutAction } from "@/lib/auth-actions";
 import { cn, initials } from "@/lib/utils";
 
 const navByRole = {
@@ -170,7 +169,7 @@ export function AppShell({
               </p>
             </div>
           </div>
-          <form action={logoutAction}>
+          <form action="/api/logout" method="post">
             <button
               type="submit"
               className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-[0.68rem] font-medium text-[var(--accent)] hover:border-[var(--accent)] hover:bg-[var(--accent-soft)]"

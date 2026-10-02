@@ -17,6 +17,7 @@ export function demoEnabled() {
 export function demoBlocksRequest(path: string, method: string) {
   // Auth endpoints must remain available for sign-out and ordinary sign-in.
   if (path === "/api/auth" || path.startsWith("/api/auth/")) return false;
+  if (path === "/api/logout" && method === "POST") return false;
   if (!path.startsWith("/api/")) return false;
   return !["GET", "HEAD", "OPTIONS"].includes(method) || path.startsWith("/api/realtime/");
 }

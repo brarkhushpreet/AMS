@@ -28,6 +28,7 @@ test("browsing and signing out remain available", () => {
   assert.equal(demoBlocksRequest("/api/attendance/reports/example", "GET"), false);
   assert.equal(demoBlocksRequest("/dashboard/teacher", "GET"), false);
   assert.equal(demoBlocksRequest("/api/auth/signout", "POST"), false);
+  assert.equal(demoBlocksRequest("/api/logout", "POST"), false);
   assert.equal(demoBlocksRequest("/api/auth/callback/credentials", "POST"), false);
   assert.equal(demoBlocksRequest("/api/authentication-unrelated", "POST"), true);
 });

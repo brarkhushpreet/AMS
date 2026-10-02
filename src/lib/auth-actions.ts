@@ -2,7 +2,7 @@
 
 import bcrypt from "bcryptjs";
 import { AuthError } from "next-auth";
-import { signIn, signOut } from "@/lib/auth";
+import { signIn } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { demoEnabled, DEMO_EMAIL_DOMAIN } from "@/lib/demo-policy";
 import {
@@ -152,8 +152,4 @@ export async function signupAction(
   }
 
   return {};
-}
-
-export async function logoutAction() {
-  await signOut({ redirectTo: "/" });
 }

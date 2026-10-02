@@ -11,7 +11,7 @@ import {
   DEMO_TEACHER_ID,
 } from "@/lib/demo-policy";
 
-export const { auth, handlers, signIn, signOut } = NextAuth({
+export const { auth, handlers, signIn } = NextAuth({
   ...authConfig,
   providers: [
     Credentials({
