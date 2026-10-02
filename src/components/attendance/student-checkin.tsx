@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { startAuthentication } from "@simplewebauthn/browser";
+import type { PublicKeyCredentialRequestOptionsJSON } from "@simplewebauthn/types";
 import { toast } from "sonner";
 import {
   Check,
@@ -17,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { PresenceVisualizer } from "@/components/attendance/presence-visualizer";
 import { getPreciseLocation, locationAccuracyLimit } from "@/lib/browser-location";
+import { readApiJson } from "@/lib/read-api-json";
 import { cn, formatMethod } from "@/lib/utils";
 
 type Session = {
@@ -37,6 +39,24 @@ type Proof = {
   detectedAt: number;
   signalToNoiseDb: number;
   amplitude: number;
+};
+
+type MarkResponse = {
+  error?: string;
+  requiresPasskey?: boolean;
+  verificationId?: string;
+  authenticationOptions?: PublicKeyCredentialRequestOptionsJSON;
+};
+
+type RealtimeTicketResponse = {
+  error?: string;
+  websocketUrl: string;
+  ticket: string;
+  settings: {
+    minHz?: number;
+    maxHz?: number;
+    matchesRequired?: number;
+  };
 };
 
 type SpectralPeak = {
@@ -119,7 +139,7 @@ export function StudentCheckin({ session }: { session: Session }) {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ sessionId: session.id, ...payload }),
       });
-      const result = await response.json();
+      const result = await readApiJson<MarkResponse>(response);
       if (!response.ok) {
         throw new Error(
           result.error ?? "Attendance could not be marked.",
@@ -128,6 +148,9 @@ export function StudentCheckin({ session }: { session: Session }) {
 
       let boundToDevice = false;
       if (result.requiresPasskey) {
+        if (!result.authenticationOptions || !result.verificationId) {
+          throw new Error("The attendance service returned incomplete device confirmation details.");
+        }
         setMessage(
           "Presence verified. Confirm this check-in with your device…",
         );
@@ -145,7 +168,7 @@ export function StudentCheckin({ session }: { session: Session }) {
             }),
           },
         );
-        const deviceResult = await deviceResponse.json();
+        const deviceResult = await readApiJson<{ error?: string }>(deviceResponse);
         if (!deviceResponse.ok) {
           throw new Error(
             deviceResult.error ?? "Device confirmation failed.",
@@ -272,7 +295,7 @@ export function StudentCheckin({ session }: { session: Session }) {
 
     try {
       const ticketResponse = await fetch(`/api/realtime/ticket?sessionId=${session.id}`);
-      const payload = await ticketResponse.json();
+      const payload = await readApiJson<RealtimeTicketResponse>(ticketResponse);
       if (!ticketResponse.ok) {
         throw new Error(
           payload.error ?? "The live session is unavailable.",

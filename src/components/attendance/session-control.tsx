@@ -20,6 +20,7 @@ import { SelectField } from "@/components/ui/select-field";
 import { StatusPill } from "@/components/ui/status-pill";
 import { PresenceVisualizer } from "@/components/attendance/presence-visualizer";
 import { getPreciseLocation, locationAccuracyLimit } from "@/lib/browser-location";
+import { readApiJson } from "@/lib/read-api-json";
 import { cn, formatMethod } from "@/lib/utils";
 
 type ActiveSession = {
@@ -75,7 +76,7 @@ export function SessionControl({
           method === "GEOLOCATION" ? Number(formData.get("radiusMeters")) : undefined,
       }),
     });
-    const payload = await response.json();
+    const payload = await readApiJson<{ error?: string }>(response);
     setPending(false);
     if (!response.ok) {
       const message = payload.error ?? "Could not start attendance.";
@@ -87,9 +88,10 @@ export function SessionControl({
       description: `${formatMethod(method)} verification has started.`,
     });
     router.refresh();
-    } catch {
-      setError("Connection lost. Check your connection and try again.");
-      toast.error("Could not reach the server");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Connection lost. Check your connection and try again.";
+      setError(message);
+      toast.error("Could not start attendance", { description: message });
     } finally { setPending(false); }
   }
 
@@ -300,7 +302,7 @@ function LiveSessionCard({
     setSignalError("");
     try {
       const ticketResponse = await fetch(`/api/realtime/ticket?sessionId=${session.id}`);
-      const payload = await ticketResponse.json();
+      const payload = await readApiJson<{ error?: string; websocketUrl: string; ticket: string }>(ticketResponse);
       if (!ticketResponse.ok) throw new Error(payload.error ?? "Could not open the live channel.");
 
       const AudioContextClass = window.AudioContext;
@@ -405,7 +407,7 @@ function LiveSessionCard({
       toast.error("Could not end attendance");
       return;
     }
-    const result = await response.json();
+    const result = await readApiJson<{ reportId?: string }>(response);
     socketRef.current?.close();
     if (audioRef.current && audioRef.current.state !== "closed") await audioRef.current.close();
     setClosing(false);

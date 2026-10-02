@@ -36,6 +36,10 @@ const markSchema = z.object({
   proofs: z.array(proofSchema).max(16).optional(),
 });
 
+// Neon can add several seconds of network latency to this audited, multi-write
+// transaction. Prisma's 5-second interactive default is too short here.
+const attendanceTransactionOptions = { maxWait: 10_000, timeout: 20_000 };
+
 type ValidatedEvidence = {
   confidence: number;
   distanceMeters: number | null;
@@ -49,6 +53,13 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof AttendanceConflict) {
       return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+    if (error && typeof error === "object" && "code" in error && error.code === "P2028") {
+      console.warn("[attendance:mark] database transaction timed out");
+      return NextResponse.json(
+        { error: "The attendance database was too slow to confirm this check-in. Please try again." },
+        { status: 503 },
+      );
     }
     throw error;
   }
@@ -217,7 +228,7 @@ async function markAttendance(request: Request) {
         },
       });
       return pending;
-    });
+    }, attendanceTransactionOptions);
 
     return NextResponse.json(
       {
@@ -317,7 +328,7 @@ async function markAttendance(request: Request) {
       },
     });
     return created;
-  });
+  }, attendanceTransactionOptions);
 
   await invalidateCache(
     `dashboard:student:${profile.student.id}`,
