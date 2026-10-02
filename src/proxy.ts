@@ -47,5 +47,10 @@ export default auth((request) => {
 });
 
 export const config = {
-  matcher: ["/api/:path*", "/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)"],
+  // Auth.js refreshes the session cookie in this wrapper. Keep its own auth
+  // endpoints and our logout response outside it so their cookies can win.
+  matcher: [
+    "/api/((?!auth(?:/|$)|logout(?:/|$)).*)",
+    "/((?!api/|_next/static|_next/image|favicon.ico|.*\\..*).*)",
+  ],
 };
